@@ -1,6 +1,6 @@
 ---
 description: Run a WoterClip heartbeat cycle (pick up issues, do work, report)
-argument-hint: [--dry-run] [--persona <name>]
+argument-hint: "[--dry-run] [--persona NAME]"
 ---
 
 Run the WoterClip heartbeat using the heartbeat skill.
