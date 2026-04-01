@@ -12,13 +12,13 @@ Display all configured WoterClip personas for this repository.
 
 ### Step 1: Load Config
 
-Read `.claude/woterclip/config.yaml`. If missing, report that WoterClip is not initialized and suggest `/woterclip-init`.
+Read `.woterclip/config.yaml`. If missing, report that WoterClip is not initialized and suggest `/woterclip-init`.
 
 ### Step 2: Read Persona Details
 
 For each persona in the `personas` config map:
 
-1. Read `config.yaml` from the persona's path (`.claude/woterclip/<persona.path>/config.yaml`)
+1. Read `config.yaml` from the persona's path (`.woterclip/<persona.path>/config.yaml`)
 2. Check if `SOUL.md` and `TOOLS.md` exist
 3. Collect: name, role, label, model, thinking effort, max turns, escalates_to, required tools
 
@@ -34,10 +34,10 @@ Backend Engineer  backend     opus     300    ceo        Linear
 Frontend Engineer frontend    sonnet   200    ceo        Linear
 
 Files:
-  Orchestrator: .claude/woterclip/personas/orchestrator/ ✓ SOUL ✓ TOOLS ✓ config
-  CEO:          .claude/woterclip/personas/ceo/         ✓ SOUL ✓ TOOLS ✓ config
-  Backend:      .claude/woterclip/personas/backend/     ✓ SOUL ✓ TOOLS ✓ config
-  Frontend:     .claude/woterclip/personas/frontend/    ✓ SOUL ✓ TOOLS ✓ config
+  Orchestrator: .woterclip/personas/orchestrator/ ✓ SOUL ✓ TOOLS ✓ config
+  CEO:          .woterclip/personas/ceo/         ✓ SOUL ✓ TOOLS ✓ config
+  Backend:      .woterclip/personas/backend/     ✓ SOUL ✓ TOOLS ✓ config
+  Frontend:     .woterclip/personas/frontend/    ✓ SOUL ✓ TOOLS ✓ config
 ```
 
 Flag missing files with `✗` so the user knows what needs attention.

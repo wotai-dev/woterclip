@@ -6,7 +6,7 @@ version: 0.1.0
 
 # Heartbeat Log
 
-Parse and summarize the WoterClip heartbeat log file (`.claude/woterclip/heartbeat-log.jsonl`).
+Parse and summarize the WoterClip heartbeat log file (`.woterclip/heartbeat-log.jsonl`).
 
 ## Log Format
 
@@ -19,7 +19,7 @@ Each line is a JSON object:
 
 ### Step 1: Read Log
 
-Read `.claude/woterclip/heartbeat-log.jsonl`. If missing or empty, report "No heartbeat history found."
+Read `.woterclip/heartbeat-log.jsonl`. If missing or empty, report "No heartbeat history found."
 
 Parse each line as JSON. Handle malformed lines gracefully (skip with warning).
 

@@ -15,7 +15,7 @@ WoterClip is a **Claude Code plugin** (no runtime code — entirely markdown/YAM
 ### Two-level structure
 
 1. **Plugin** (this repo) — ships commands, skills, agents, references, and persona templates. Installed via `claude plugin add`.
-2. **Per-repo scaffold** (`.claude/woterclip/`) — created by `/woterclip-init` in target repos. Contains `config.yaml`, persona directories, heartbeat log, and lockfile.
+2. **Per-repo scaffold** (`.woterclip/`) — created by `/woterclip-init` in target repos. Contains `config.yaml`, persona directories, heartbeat log, and lockfile.
 
 ### Core loop
 
@@ -46,7 +46,7 @@ Routing: Linear issue label → `personas` map in config.yaml → persona direct
 
 - **Labels are the state machine.** `agent-working` and `agent-blocked` are mutually exclusive. Labels are managed via read-modify-write (get labels array → modify → save full set).
 - **Heartbeat counter is derived from comments**, not stored locally. Parse last `Heartbeat #N` from Linear comments.
-- **Lockfile** (`.claude/woterclip/.heartbeat-lock`) prevents concurrent heartbeats. Must be deleted on every exit path.
+- **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. Must be deleted on every exit path.
 - **`${CLAUDE_PLUGIN_ROOT}`** — use this for all intra-plugin path references in commands and hooks. Never hardcode paths.
 - **Templates use `{{USER_NAME}}` and `{{TEAM}}`** placeholders — the init skill replaces these when scaffolding.
 

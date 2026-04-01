@@ -10,7 +10,7 @@ Convert a Paperclip agent directory into a WoterClip persona. Maps Paperclip's a
 
 ## Prerequisites
 
-- `.claude/woterclip/config.yaml` must exist (run `/woterclip-init` first)
+- `.woterclip/config.yaml` must exist (run `/woterclip-init` first)
 - User must provide the path to the Paperclip agent directory
 
 ## File Mapping
@@ -87,9 +87,9 @@ runtime:
 
 ### Step 6: Write Files
 
-1. Create `.claude/woterclip/personas/<label>/`
+1. Create `.woterclip/personas/<label>/`
 2. Write `SOUL.md`, `TOOLS.md`, `config.yaml`
-3. Update `.claude/woterclip/config.yaml` to add the persona to the `personas` map
+3. Update `.woterclip/config.yaml` to add the persona to the `personas` map
 4. Create the Linear label if it doesn't exist
 
 ### Step 7: Summary
@@ -100,9 +100,9 @@ Imported: <Name> (from <source-path>)
   Model:    <model>
 
 Files created:
-  ✓ .claude/woterclip/personas/<label>/SOUL.md
-  ✓ .claude/woterclip/personas/<label>/TOOLS.md
-  ✓ .claude/woterclip/personas/<label>/config.yaml
+  ✓ .woterclip/personas/<label>/SOUL.md
+  ✓ .woterclip/personas/<label>/TOOLS.md
+  ✓ .woterclip/personas/<label>/config.yaml
 
 What was imported:
   ✓ SOUL.md — identity and posture

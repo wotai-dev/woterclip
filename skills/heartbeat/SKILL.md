@@ -19,8 +19,8 @@ Execute the WoterClip heartbeat cycle: pick up assigned Linear issues, resolve t
 
 ## Step 1: Load Config & Lock
 
-1. Read `.claude/woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
-2. Check for lockfile at `.claude/woterclip/.heartbeat-lock`.
+1. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
+2. Check for lockfile at `.woterclip/.heartbeat-lock`.
    - If lockfile exists and is **less than** `stale_lock_hours` old → stop with message: "Previous heartbeat still active. Skipping."
    - If lockfile exists and is **older than** `stale_lock_hours` → delete it, log: "Cleaned stale lockfile."
    - If no lockfile → proceed.
@@ -60,7 +60,7 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
 
 1. Read the issue's labels. Find the persona label by matching against the `personas` map in config.
 2. No persona label found → load the persona with `is_default: true` (typically Orchestrator).
-3. Load persona files from `.claude/woterclip/<persona.path>/`:
+3. Load persona files from `.woterclip/<persona.path>/`:
    - `SOUL.md` → inject into context as identity instructions
    - `TOOLS.md` → inject into context as tool guidance
    - `config.yaml` → read runtime settings
@@ -122,7 +122,7 @@ Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: name who needs to act (Board user from config `linear.user_name`)
 
-Append heartbeat metadata to `.claude/woterclip/heartbeat-log.jsonl`:
+Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
 ```json
 {"heartbeat": N, "timestamp": "ISO", "issue": "WOT-XX", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked", "actions": ["description"]}
 ```

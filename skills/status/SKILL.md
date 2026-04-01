@@ -15,7 +15,7 @@ Display the current state of WoterClip in this repository: schedule info, last h
 
 ### Step 1: Load Config
 
-Read `.claude/woterclip/config.yaml`. If missing, report that WoterClip is not initialized and suggest `/woterclip-init`.
+Read `.woterclip/config.yaml`. If missing, report that WoterClip is not initialized and suggest `/woterclip-init`.
 
 ### Step 2: Check Schedule
 
@@ -23,7 +23,7 @@ Report whether a recurring heartbeat is active. Check if `/schedule` is running 
 
 ### Step 3: Last Heartbeat
 
-Read the last line of `.claude/woterclip/heartbeat-log.jsonl` (if it exists). Report:
+Read the last line of `.woterclip/heartbeat-log.jsonl` (if it exists). Report:
 - Heartbeat number, timestamp, and how long ago it ran
 - Which persona and issue were involved
 - Outcome (completed, in progress, blocked)
@@ -69,7 +69,7 @@ Blocked (needs Board):
 
 ## History Mode
 
-When `--history` is passed, read `.claude/woterclip/heartbeat-log.jsonl` and display the last 10 entries:
+When `--history` is passed, read `.woterclip/heartbeat-log.jsonl` and display the last 10 entries:
 
 ```
 Heartbeat History (last 10)

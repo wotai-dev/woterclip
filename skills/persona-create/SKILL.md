@@ -10,7 +10,7 @@ Interactively create a new WoterClip persona for this repository.
 
 ## Prerequisites
 
-Verify `.claude/woterclip/config.yaml` exists. If not, instruct the user to run `/woterclip-init` first.
+Verify `.woterclip/config.yaml` exists. If not, instruct the user to run `/woterclip-init` first.
 
 ## Procedure
 
@@ -70,12 +70,12 @@ runtime:
 
 ### Step 5: Write Files
 
-1. Create `.claude/woterclip/personas/<label>/` directory
+1. Create `.woterclip/personas/<label>/` directory
 2. Write `SOUL.md`, `TOOLS.md`, `config.yaml`
 
 ### Step 6: Update Config
 
-Read `.claude/woterclip/config.yaml` and add the new persona to the `personas` map:
+Read `.woterclip/config.yaml` and add the new persona to the `personas` map:
 
 ```yaml
 <label>:
@@ -94,7 +94,7 @@ Persona created: <Name>
   Label:    <label>
   Model:    <model>
   Escalates: <escalates_to>
-  Path:     .claude/woterclip/personas/<label>/
+  Path:     .woterclip/personas/<label>/
 
 Files:
   ✓ SOUL.md

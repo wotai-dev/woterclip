@@ -73,18 +73,17 @@ woterclip/
 
 ```
 <target-repo>/
-  .claude/
-    woterclip/
-      config.yaml             # Repo-level config
-      personas/
-        ceo/
-          SOUL.md
-          TOOLS.md
-          config.yaml
-        backend/              # User-created personas
-          SOUL.md
-          TOOLS.md
-          config.yaml
+  .woterclip/
+    config.yaml             # Repo-level config
+    personas/
+      ceo/
+        SOUL.md
+        TOOLS.md
+        config.yaml
+      backend/              # User-created personas
+        SOUL.md
+        TOOLS.md
+        config.yaml
 ```
 
 ## 2. Heartbeat Procedure
@@ -93,7 +92,7 @@ The core loop that runs on every `/schedule` trigger or manual `/heartbeat` invo
 
 ### Steps
 
-1. **Load Config** — Read `.claude/woterclip/config.yaml`. Verify Linear MCP is available. Check for lockfile (`.claude/woterclip/.heartbeat-lock`). If lockfile exists and is less than `stale_lock_hours` old, skip this heartbeat ("previous heartbeat still active"). If stale, delete lockfile and proceed. Create lockfile with current timestamp. Delete lockfile on exit (including error paths).
+1. **Load Config** — Read `.woterclip/config.yaml`. Verify Linear MCP is available. Check for lockfile (`.woterclip/.heartbeat-lock`). If lockfile exists and is less than `stale_lock_hours` old, skip this heartbeat ("previous heartbeat still active"). If stale, delete lockfile and proceed. Create lockfile with current timestamp. Delete lockfile on exit (including error paths).
 
 2. **Check Inbox** — Query Linear via `mcp__claude_ai_Linear__list_issues` with `assignee: "me"`. The Linear MCP only accepts a single `state` filter, so fetch all issues for the assignee (no state filter), then filter and sort client-side. Sort by status (in_progress > todo), then by Linear priority (critical > low). Skip issues without a persona label. Skip `agent-blocked` issues unless new comments exist since last agent comment. Detect stale `agent-working` labels (older than `stale_lock_hours`) by checking comment timestamps — clean up stale lock, post a comment about it.
 
@@ -109,7 +108,7 @@ The core loop that runs on every `/schedule` trigger or manual `/heartbeat` invo
 
 8. **Do Work** — Follow persona instructions (SOUL.md). Use repo tools. For large scope: create Linear sub-issues via `mcp__claude_ai_Linear__save_issue` with `team` from repo config, `parentId` set to the current issue, and appropriate persona labels. For small scope: use internal Claude Code tasks. If Linear MCP becomes unavailable mid-work, stop work, leave `agent-working` label in place (will be cleaned as stale lock on next heartbeat), and exit with error log.
 
-9. **Report** — Post structured comment on Linear issue via `mcp__claude_ai_Linear__save_comment`. Include heartbeat counter (incremented from step 7). Store heartbeat metadata to `.claude/woterclip/heartbeat-log.jsonl` (timestamp, issue ID, persona, duration, status, heartbeat number) for `/woterclip-status --history`.
+9. **Report** — Post structured comment on Linear issue via `mcp__claude_ai_Linear__save_comment`. Include heartbeat counter (incremented from step 7). Store heartbeat metadata to `.woterclip/heartbeat-log.jsonl` (timestamp, issue ID, persona, duration, status, heartbeat number) for `/woterclip-status --history`.
 
 10. **Update State** — Read the issue's current labels, then modify:
     - **Done** → remove `agent-working` from labels array, save. Update issue state to the appropriate Linear status.
@@ -128,7 +127,7 @@ The heartbeat counter is **derived from Linear comments**, not stored locally. O
 
 ### Overlap Prevention
 
-A lockfile at `.claude/woterclip/.heartbeat-lock` prevents concurrent heartbeats. Created at step 1, deleted at step 11 (and in error handlers). Stale lockfiles (older than `stale_lock_hours`) are auto-cleaned.
+A lockfile at `.woterclip/.heartbeat-lock` prevents concurrent heartbeats. Created at step 1, deleted at step 11 (and in error handlers). Stale lockfiles (older than `stale_lock_hours`) are auto-cleaned.
 
 ### Differences from Paperclip
 
@@ -228,7 +227,7 @@ The CEO never writes code. It triages, decomposes, coordinates, and escalates.
 ### Repo-Level Config
 
 ```yaml
-# .claude/woterclip/config.yaml
+# .woterclip/config.yaml
 version: 1
 
 linear:
@@ -509,7 +508,7 @@ The `/persona-import` skill converts Paperclip agent directories into WoterClip 
 
 ### Heartbeat Log
 
-Each heartbeat appends a JSON line to `.claude/woterclip/heartbeat-log.jsonl`:
+Each heartbeat appends a JSON line to `.woterclip/heartbeat-log.jsonl`:
 
 ```json
 {"heartbeat": 7, "timestamp": "2026-03-25T10:15:00Z", "issue": "WOT-79", "persona": "backend", "duration_sec": 720, "status": "in_progress", "actions": ["committed a1b2c3d", "created sub-issue WOT-83"]}
@@ -519,7 +518,7 @@ This powers `/woterclip-status --history`. The file is append-only and can be sa
 
 ### Lockfile
 
-`.claude/woterclip/.heartbeat-lock` contains the timestamp when the current heartbeat started. Auto-deleted on exit. Stale locks (older than `stale_lock_hours`) are auto-cleaned.
+`.woterclip/.heartbeat-lock` contains the timestamp when the current heartbeat started. Auto-deleted on exit. Stale locks (older than `stale_lock_hours`) are auto-cleaned.
 
 ### Label State
 

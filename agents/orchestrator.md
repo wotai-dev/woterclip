@@ -18,13 +18,13 @@ Route issues to the right persona. Decompose large work. Escalate what can't be 
 
 ## Setup
 
-1. Read `.claude/woterclip/config.yaml` to load:
+1. Read `.woterclip/config.yaml` to load:
    - `linear.user_name` – Board user's display name for @-mentions
    - `linear.team` – Team for new sub-issues
    - `personas` – Available persona labels and their routing
    - `labels.group` – Label group name
 
-2. Load orchestrator persona from `.claude/woterclip/personas/orchestrator/SOUL.md`
+2. Load orchestrator persona from `.woterclip/personas/orchestrator/SOUL.md`
 
 ## Triage Procedure
 

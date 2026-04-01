@@ -6,7 +6,7 @@ version: 0.1.0
 
 # WoterClip Initialization
 
-Initialize WoterClip in the current repository. This creates the `.claude/woterclip/` directory with config, persona templates, and corresponding Linear labels.
+Initialize WoterClip in the current repository. This creates the `.woterclip/` directory with config, persona templates, and corresponding Linear labels.
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ Use `mcp__claude_ai_Linear__list_issue_labels` first to check if labels already 
 
 1. Create the directory structure:
    ```
-   .claude/woterclip/
+   .woterclip/
    ├── config.yaml
    └── personas/
        ├── orchestrator/
@@ -84,7 +84,7 @@ Use `mcp__claude_ai_Linear__list_issue_labels` first to check if labels already 
    - Read each template file from `${CLAUDE_PLUGIN_ROOT}/templates/`
    - Replace `{{USER_NAME}}` with the user's Linear display name
    - Replace `{{TEAM}}` with the selected team name
-   - Write to `.claude/woterclip/`
+   - Write to `.woterclip/`
 
 3. Update `config.yaml` personas section to match the selected preset — remove entries for personas that weren't scaffolded.
 
@@ -109,7 +109,7 @@ Linear labels created:
   ✓ backend
   ✓ frontend
 
-Config: .claude/woterclip/config.yaml
+Config: .woterclip/config.yaml
 Personas:
   ✓ orchestrator → default (no label)
   ✓ ceo          → "ceo" label
@@ -117,7 +117,7 @@ Personas:
   ✓ frontend → "frontend" label
 
 Next steps:
-  1. Review .claude/woterclip/config.yaml
+  1. Review .woterclip/config.yaml
   2. Customize persona SOUL.md files for your project
   3. Run /heartbeat or /schedule 30m /heartbeat
 ```
@@ -129,12 +129,12 @@ Next steps:
 | Linear MCP not available | Stop. Print setup instructions for connecting Linear MCP. |
 | No teams found | Stop. Ask user to verify Linear workspace access. |
 | Label creation fails | Log the error, continue with remaining labels, report at end. |
-| `.claude/woterclip/` already exists | Ask user: overwrite, merge, or cancel. Default to merge (skip existing files). |
+| `.woterclip/` already exists | Ask user: overwrite, merge, or cancel. Default to merge (skip existing files). |
 | Template file missing from plugin | Log warning, create a minimal placeholder, continue. |
 
 ## Re-initialization
 
-If `.claude/woterclip/config.yaml` already exists:
+If `.woterclip/config.yaml` already exists:
 
 1. Read the existing config version
 2. Ask the user: **overwrite** (fresh start), **merge** (add missing personas only), or **cancel**

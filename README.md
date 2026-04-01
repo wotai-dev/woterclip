@@ -64,7 +64,7 @@ claude --plugin-dir /path/to/woterclip
 
 Each `/heartbeat` runs an 11-step cycle:
 
-1. **Load config** – read `.claude/woterclip/config.yaml`, check lockfile
+1. **Load config** – read `.woterclip/config.yaml`, check lockfile
 2. **Check inbox** – query Linear for assigned issues, filter and sort
 3. **Pick issue** – highest priority In Progress, then Todo
 4. **Resolve persona** – match issue label → persona directory, load SOUL.md + TOOLS.md
@@ -104,7 +104,7 @@ Create custom personas with `/persona-create` or copy directories between repos.
 After `/woterclip-init`, your repo gets:
 
 ```
-.claude/woterclip/
+.woterclip/
 ├── config.yaml              # Linear settings, heartbeat behavior, persona routing
 ├── heartbeat-log.jsonl      # Append-only heartbeat history (created at runtime)
 └── personas/
