@@ -37,7 +37,7 @@ Run `gh issue view N --repo <owner/name> --json title,body,labels,comments`. Det
 
 | Situation | Action |
 |-----------|--------|
-| **Clear single-persona work** | Apply persona label (`gh issue edit N --add-label backend`), post triage comment: `**Triage:** → backend` |
+| **Clear single-persona work** | Apply persona label (`gh issue edit N --repo <owner/name> --add-label backend`), post triage comment: `**Triage:** → backend` |
 | **Multi-persona work** | Decompose into sub-issues (one per persona), post summary comment |
 | **Strategic/architectural decision** | Route to CEO persona (`ceo` label) |
 | **Unclear scope** | Apply `agent-blocked`, @-mention Board user, ask for clarification |

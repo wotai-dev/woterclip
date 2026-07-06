@@ -1,7 +1,7 @@
 ---
 name: heartbeat
 description: This skill should be used when the user asks to "run a heartbeat", "run the agent loop", "process GitHub issues", "check for work", or runs the /heartbeat command. Executes the WoterClip heartbeat — picks up GitHub issues, resolves personas, does work, and reports back.
-version: 0.2.0
+version: 0.1.0
 ---
 
 # WoterClip Heartbeat
@@ -143,11 +143,11 @@ Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
 
 Read the issue's current labels (`gh issue view N --json labels`), then update based on outcome:
 
-| Outcome | Labels | State |
-|---------|--------|--------|
-| **Completed** | Remove `agent-working` | Close the issue (`gh issue close N --comment "..."`) — or swap to `in-review` label if a PR was opened |
-| **Blocked** | Remove `agent-working`, add `agent-blocked` (one combined `gh issue edit`) | Stays open |
-| **More work needed** | Keep `agent-working`, ensure `in-progress` | Stays open |
+| Outcome | Commands (in order) |
+|---------|--------|
+| **Completed** | `gh issue edit N --remove-label agent-working --remove-label in-progress` (labels first — `gh issue close` does not touch labels, and stale-label cleanup only scans open issues), then `gh issue close N --comment "..."` — or, if a PR was opened, swap to review instead: `gh issue edit N --remove-label agent-working --remove-label in-progress --add-label in-review` (issue stays open) |
+| **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
+| **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 

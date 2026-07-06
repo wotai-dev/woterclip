@@ -1,7 +1,7 @@
 ---
 name: woterclip-init
 description: This skill should be used when the user asks to "initialize woterclip", "set up woterclip", "woterclip init", "configure woterclip for this repo", or runs the /woterclip-init command. Scaffolds a repo with WoterClip config, persona directories, and GitHub labels.
-version: 0.2.0
+version: 0.1.0
 ---
 
 # WoterClip Initialization

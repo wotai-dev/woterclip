@@ -8,11 +8,11 @@
 ## Common Patterns
 
 ### Build a component
-1. Read the issue for requirements and linked designs (`gh issue view N --json title,body,comments`)
+1. Read the issue for requirements and linked designs (`gh issue view N --repo <owner/name> --json title,body,comments`)
 2. Check existing components for patterns (Glob/Grep)
 3. Create or modify component files (Write/Edit)
 4. Run dev server and verify (Bash)
-5. Commit and post heartbeat comment (Bash + `gh issue comment`)
+5. Commit and post heartbeat comment (Bash + `gh issue comment N --repo <owner/name>`)
 
 ### Fix a UI bug
 1. Read the issue for reproduction steps

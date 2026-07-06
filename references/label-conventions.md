@@ -40,12 +40,16 @@ Persona labels route issues to the right persona. Created by `/woterclip-init`.
 - Labels are applied by the Orchestrator during triage, or manually by the Board.
 - Custom persona labels are added via `/persona-create` and registered in `config.yaml`.
 
-## Status Labels (optional, human-managed)
+## Status Labels
 
 `backlog`, `todo`, `in-progress`, `in-review` carry the working-state distinctions GitHub's
-open/closed state can't (see `status-mapping.md`). The heartbeat reads them for inbox
-filtering and sets `in-progress`/`in-review` on state transitions; the Board manages
-`backlog`/`todo` by hand.
+open/closed state can't (see `status-mapping.md`). They split into two groups:
+
+- **Agent-written (required):** `in-progress` and `in-review` — the heartbeat filters on
+  and writes these, so `/woterclip-init` creates them unconditionally.
+- **Board-managed (optional):** `backlog` and `todo` — humans position open work with
+  these; the heartbeat only reads them, and repos may skip them entirely (unlabeled open
+  issues are eligible for pickup).
 
 ## Label Lifecycle
 
