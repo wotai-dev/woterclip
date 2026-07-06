@@ -32,7 +32,11 @@ If no log file exists, report "No heartbeat history found."
 
 ### Step 4: Current Issues
 
-Call `mcp__claude_ai_Linear__list_issues` with `assignee: "me"`. Filter and categorize:
+Run two queries against the repo from config `github.repo`:
+- Open issues (queue + blocked): `gh issue list --repo <owner/name> --assignee @me --state open --json number,title,labels`
+- Recently completed (closed since the last logged heartbeat timestamp): `gh issue list --repo <owner/name> --assignee @me --state closed --search "closed:>=<last-heartbeat-ISO-date>" --json number,title,labels,closedAt`
+
+Filter and categorize:
 
 **Since last heartbeat** (issues that changed since the last logged heartbeat timestamp):
 - `✓` Completed issues
@@ -41,12 +45,12 @@ Call `mcp__claude_ai_Linear__list_issues` with `assignee: "me"`. Filter and cate
 - `+` Newly created sub-issues
 
 **Queue** (next heartbeat would pick these up):
-- Issues with persona labels, status Todo or In Progress, sorted by priority
-- Show: issue ID, persona label, status, priority, title
+- Open issues with persona labels, not labeled `backlog` or `in-review`, sorted `in-progress` first then by `priority:*` label
+- Show: issue number, persona label, status label, priority label, title
 
 **Blocked** (needs Board attention):
 - Issues with `agent-blocked` label
-- Show: issue ID, Board user mention, blocker summary from last agent comment
+- Show: issue number, Board user mention, blocker summary from last agent comment
 
 ### Step 5: Format Output
 
@@ -56,15 +60,15 @@ WoterClip Status
 Last beat:    Heartbeat #N — X min ago
 
 Since last heartbeat:
-  ✓ WOT-XX  [persona]   Completed    "Title"
-  → WOT-XX  [persona]   In Progress  "Title"
-  ✗ WOT-XX  [persona]   Blocked      "Title"
+  ✓ #12  [persona]   Completed    "Title"
+  → #13  [persona]   In Progress  "Title"
+  ✗ #14  [persona]   Blocked      "Title"
 
 Queue (next heartbeat):
-  WOT-XX  [persona]  Status  Priority  "Title"
+  #15  [persona]  Status  Priority  "Title"
 
 Blocked (needs Board):
-  WOT-XX  @User — blocker summary
+  #14  @board-login — blocker summary
 ```
 
 ## History Mode
@@ -74,8 +78,8 @@ When `--history` is passed, read `.woterclip/heartbeat-log.jsonl` and display th
 ```
 Heartbeat History (last 10)
 ───────────────────────────
-#N  HH:MM  persona  WOT-XX  Status      (duration)
-#N  HH:MM  persona  WOT-XX  Status      (duration)
+#N  HH:MM  persona  #12  Status      (duration)
+#N  HH:MM  persona  #15  Status      (duration)
 ```
 
 If the log file doesn't exist or is empty, report "No heartbeat history found."

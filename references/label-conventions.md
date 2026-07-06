@@ -1,10 +1,11 @@
 # Label Conventions
 
-WoterClip uses Linear labels for persona routing and agent state tracking.
+WoterClip uses GitHub issue labels for persona routing and agent state tracking.
 
-## Label Group
+## Label Namespace
 
-All WoterClip labels live under a parent group (default: `WoterClip`). The group name is configurable in `config.yaml` → `labels.group`.
+GitHub has no label groups — WoterClip labels are **flat**, created by `/woterclip-init`
+directly on the repo. Keep the names below verbatim so they match config defaults.
 
 ## State Labels
 
@@ -16,7 +17,7 @@ All WoterClip labels live under a parent group (default: `WoterClip`). The group
 ### State Label Rules
 
 - `agent-working` and `agent-blocked` are mutually exclusive — never both present
-- `agent-working` is added via read-modify-write: read current labels, append, save full set
+- Labels are changed with **atomic operations**: `gh issue edit N --add-label X --remove-label Y` — never rewrite the full label set, so concurrent human labeling is never clobbered
 - Stale `agent-working` labels (older than `stale_lock_hours`) are auto-cleaned by the heartbeat
 - `agent-blocked` issues are skipped unless new human comments exist since the last agent comment
 
@@ -39,24 +40,48 @@ Persona labels route issues to the right persona. Created by `/woterclip-init`.
 - Labels are applied by the Orchestrator during triage, or manually by the Board.
 - Custom persona labels are added via `/persona-create` and registered in `config.yaml`.
 
+## Status Labels
+
+`backlog`, `todo`, `in-progress`, `in-review` carry the working-state distinctions GitHub's
+open/closed state can't (see `status-mapping.md`). They split into two groups:
+
+- **Agent-written (required):** `in-progress` and `in-review` — the heartbeat filters on
+  and writes these, so `/woterclip-init` creates them unconditionally.
+- **Board-managed (optional):** `backlog` and `todo` — humans position open work with
+  these; the heartbeat only reads them, and repos may skip them entirely (unlabeled open
+  issues are eligible for pickup).
+
 ## Label Lifecycle
 
 ```
 New issue (no labels)
   → Orchestrator triages → adds persona label (e.g., "backend")
   → Heartbeat picks up → adds "agent-working"
-  → Work completes → removes "agent-working"
+  → Work completes → removes "agent-working", closes issue (or labels "in-review")
   → Or blocked → removes "agent-working", adds "agent-blocked"
   → Board unblocks → removes "agent-blocked"
   → Next heartbeat picks up again
 ```
 
-## Read-Modify-Write Pattern
+## Label Operations
 
-Linear labels are managed as arrays. To add or remove a label:
+GitHub label changes are atomic per operation — no read-modify-write needed:
 
-1. `get_issue` — read current labels array
-2. Modify the array (push or filter)
-3. `save_issue` — save the full label set
+```bash
+gh issue edit 42 --repo <owner/name> --add-label agent-working
+gh issue edit 42 --repo <owner/name> --remove-label agent-working --add-label agent-blocked
+```
 
-This is safe because WoterClip runs as a single instance per repo — no concurrent writers.
+Make mutually-exclusive transitions (working ↔ blocked) in **one combined** `gh issue edit` with both `--add-label` and `--remove-label`, never two separate calls — a failure between split calls would leave both labels present.
+
+If `--add-label` fails because the label doesn't exist on the repo (`could not add label: '<name>' not found`), create it first (`gh label create <name> --repo <owner/name>`) and retry the edit — `gh issue edit` never auto-creates labels.
+
+To read current labels (for state checks, not for writes):
+
+```bash
+gh issue view 42 --repo <owner/name> --json labels --jq '.labels[].name'
+```
+
+## Concurrency Assumption
+
+WoterClip assumes a **single agent runner per repo**. The heartbeat lockfile (`.woterclip/.heartbeat-lock`) only guards one checkout — it does not coordinate multiple checkouts or machines operating on the same GitHub repo. Do not run scheduled heartbeats for the same repo from more than one place; labels are a shared surface and two runners would race past each other's `agent-working` markers.

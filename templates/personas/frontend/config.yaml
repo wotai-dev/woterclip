@@ -4,7 +4,7 @@ label: frontend
 escalates_to: ceo
 
 required_tools:
-  - mcp__claude_ai_Linear          # Issue management
+  - gh                             # GitHub CLI – issue management
   # Add repo-specific tools below:
   # - mcp__plugin_playwright_playwright  # Browser automation
 

@@ -2,17 +2,17 @@
 
 ## Required
 
-- **Linear MCP** (`mcp__claude_ai_Linear__*`): Read issues, post comments, update status.
+- **`gh` CLI** (via Bash): Read issues, post comments, update labels/state. Verify with `gh auth status`. Target the repo from config `github.repo` — pass `--repo <owner/name>` explicitly on every issue command.
 - **Repo tools** (Read, Write, Edit, Bash, Grep, Glob): Full codebase access for implementation.
 
 ## Common Patterns
 
 ### Build a component
-1. Read the issue for requirements and linked designs
+1. Read the issue for requirements and linked designs (`gh issue view N --repo <owner/name> --json title,body,comments`)
 2. Check existing components for patterns (Glob/Grep)
 3. Create or modify component files (Write/Edit)
 4. Run dev server and verify (Bash)
-5. Commit and post heartbeat comment (Bash + Linear MCP)
+5. Commit and post heartbeat comment (Bash + `gh issue comment N --repo <owner/name>`)
 
 ### Fix a UI bug
 1. Read the issue for reproduction steps

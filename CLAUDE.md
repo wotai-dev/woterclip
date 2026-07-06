@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-WoterClip is a **Claude Code plugin** (no runtime code — entirely markdown/YAML). It provides Linear-backed agent orchestration with persona-based task routing. A single Claude instance wears different "hats" (personas) based on Linear issue labels.
+WoterClip is a **Claude Code plugin** (no runtime code — entirely markdown/YAML). It provides GitHub Issues-backed agent orchestration with persona-based task routing. A single Claude instance wears different "hats" (personas) based on GitHub issue labels.
 
-**Design spec:** `docs/specs/2026-03-25-woterclip-design.md`
+**Design spec:** `docs/specs/2026-03-25-woterclip-design.md` (describes the original Linear-backed design — the tracker swapped to GitHub Issues in #1)
 **Implementation plan:** `docs/specs/2026-03-25-woterclip-implementation-plan.md`
-**Linear:** WotAI workspace, WoterClip project
+**Tracker:** GitHub Issues on `wotai-dev/woterclip` (conventions in AGENTS.md)
 
 ## Architecture
 
@@ -22,11 +22,11 @@ WoterClip is a **Claude Code plugin** (no runtime code — entirely markdown/YAM
 ### Core loop
 
 ```
-/heartbeat → Load Config → Check Inbox (Linear) → Pick Issue → Resolve Persona
+/heartbeat → Load Config → Check Inbox (GitHub) → Pick Issue → Resolve Persona
   → Validate Tools → Lock Issue → Understand Context → Do Work → Report → Update State → Next/Exit
 ```
 
-The heartbeat is a **skill** (`skills/heartbeat/SKILL.md`), not code. Claude follows it as a procedure using Linear MCP tools and repo tools.
+The heartbeat is a **skill** (`skills/heartbeat/SKILL.md`), not code. Claude follows it as a procedure using the `gh` CLI and repo tools — no MCP server required.
 
 ### Persona system
 
@@ -35,7 +35,7 @@ Each persona = directory with 3 files:
 - `TOOLS.md` — available tools and usage patterns (shapes capabilities)
 - `config.yaml` — machine-readable runtime config (model, thinking effort, max turns, required tools)
 
-Routing: Linear issue label → `personas` map in config.yaml → persona directory.
+Routing: GitHub issue label → `personas` map in config.yaml → persona directory.
 
 ### Persona hierarchy
 
@@ -46,11 +46,11 @@ Routing: Linear issue label → `personas` map in config.yaml → persona direct
 
 ### Key conventions
 
-- **Labels are the state machine.** `agent-working` and `agent-blocked` are mutually exclusive. Labels are managed via read-modify-write (get labels array → modify → save full set).
-- **Heartbeat counter is derived from comments**, not stored locally. Parse last `Heartbeat #N` from Linear comments.
+- **Labels are the state machine.** `agent-working` and `agent-blocked` are mutually exclusive. Labels are changed via atomic operations (`gh issue edit --add-label / --remove-label`) — never rewrite the full label set.
+- **Heartbeat counter is derived from comments**, not stored locally. Parse last `Heartbeat #N` from the issue's GitHub comments.
 - **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. Must be deleted on every exit path.
 - **`${CLAUDE_PLUGIN_ROOT}`** — use this for all intra-plugin path references in commands and hooks. Never hardcode paths.
-- **Templates use `{{USER_NAME}}` and `{{TEAM}}`** placeholders — the init skill replaces these when scaffolding.
+- **Templates use `{{USER_NAME}}` and `{{REPO}}`** placeholders — the init skill replaces these when scaffolding (`{{USER_NAME}}` = Board user's GitHub login, `{{REPO}}` = `owner/name`).
 
 ## Plugin Component Map
 

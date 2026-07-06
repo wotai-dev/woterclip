@@ -1,17 +1,17 @@
 # WoterClip
 
-Linear-backed agent orchestration for Claude Code. A single Claude instance wears different "hats" (personas) based on Linear issue labels – an Orchestrator routes work, a CEO makes strategic calls, and worker personas execute.
+GitHub Issues-backed agent orchestration for Claude Code. A single Claude instance wears different "hats" (personas) based on GitHub issue labels – an Orchestrator routes work, a CEO makes strategic calls, and worker personas execute.
 
 ## How It Works
 
 ```
-Linear Issues → /heartbeat → Persona Matching → Work → Report Back
+GitHub Issues → /heartbeat → Persona Matching → Work → Report Back
 ```
 
-1. **Issues** live in Linear with persona labels (`backend`, `frontend`, etc.)
+1. **Issues** live on GitHub with persona labels (`backend`, `frontend`, etc.)
 2. **Heartbeat** picks the highest-priority issue and resolves which persona handles it
 3. **Personas** (CEO, Backend, Frontend, ...) define identity, tools, and runtime config
-4. **Reports** are structured comments on the Linear issue with progress, commits, and blockers
+4. **Reports** are structured comments on the GitHub issue with progress, commits, and blockers
 5. **Schedule** runs heartbeats automatically via Claude Code's `/schedule`
 
 The human is the **Board** – the ultimate escalation target when the agent is blocked.
@@ -30,24 +30,22 @@ claude --plugin-dir /path/to/woterclip
 ### Prerequisites
 
 - [Claude Code](https://claude.ai/code) installed
-- [Linear MCP](https://linear.app/docs/mcp) connected – add to your `.mcp.json` or global MCP config:
-  ```json
-  {
-    "mcpServers": {
-      "linear": {
-        "type": "url",
-        "url": "https://mcp.linear.app/sse"
-      }
-    }
-  }
+- [GitHub CLI](https://cli.github.com) installed and authenticated:
+  ```bash
+  brew install gh   # or your platform's equivalent
+  gh auth login
   ```
-- Linear workspace with at least one team
-- Issues assigned to your Linear account (the heartbeat queries `assignee: "me"`)
+- A GitHub repository with Issues enabled
+- Issues assigned to your GitHub account (the heartbeat queries `--assignee @me`)
+
+No MCP server is required – all GitHub operations go through the `gh` CLI, so scheduled heartbeats work headlessly.
+
+Note on notifications: the agent posts comments as whatever account `gh` is authenticated as, and GitHub never notifies a user of their own comments. If you authenticate `gh` with your personal account (the common setup), blocked-escalation @-mentions won't notify you – watch the repo or check `/woterclip-status`. A separate bot/machine account for `gh auth` gives you real mention notifications.
 
 ## Quick Start
 
 ```bash
-# 1. Initialize WoterClip in your repo (creates config + personas + Linear labels)
+# 1. Initialize WoterClip in your repo (creates config + personas + GitHub labels)
 /woterclip-init
 
 # 2. Run a single heartbeat cycle
@@ -65,10 +63,10 @@ claude --plugin-dir /path/to/woterclip
 Each `/heartbeat` runs an 11-step cycle:
 
 1. **Load config** – read `.woterclip/config.yaml`, check lockfile
-2. **Check inbox** – query Linear for assigned issues, filter and sort
-3. **Pick issue** – highest priority In Progress, then Todo
+2. **Check inbox** – query GitHub for assigned open issues, filter and sort
+3. **Pick issue** – `in-progress` labeled first, then the rest, by priority label
 4. **Resolve persona** – match issue label → persona directory, load SOUL.md + TOOLS.md
-5. **Validate tools** – check required MCP tools are available
+5. **Validate tools** – check required tools are available (`gh auth status`)
 6. **Lock issue** – add `agent-working` label
 7. **Understand context** – read issue, comments, parent, heartbeat counter
 8. **Do work** – follow persona instructions (CEO triages, workers implement)
@@ -105,7 +103,7 @@ After `/woterclip-init`, your repo gets:
 
 ```
 .woterclip/
-├── config.yaml              # Linear settings, heartbeat behavior, persona routing
+├── config.yaml              # GitHub settings, heartbeat behavior, persona routing
 ├── heartbeat-log.jsonl      # Append-only heartbeat history (created at runtime)
 └── personas/
     ├── orchestrator/
@@ -141,15 +139,17 @@ After `/woterclip-init`, your repo gets:
 
 ## Label System
 
-WoterClip uses Linear labels for state management:
+WoterClip uses GitHub issue labels for state management:
 
 | Label | Purpose |
 |-------|---------|
 | `agent-working` | Agent is actively working this issue |
 | `agent-blocked` | Agent is blocked, needs Board attention |
 | `backend`, `frontend`, etc. | Routes issue to the matching persona |
+| `backlog`, `todo`, `in-progress`, `in-review` | Optional status labels (GitHub issues are only open/closed – these carry the working-state distinctions) |
+| `priority:high`, `priority:low` | Optional priority labels (GitHub has no native priority field) |
 
-All labels live under a "WoterClip" parent group in Linear, created by `/woterclip-init`.
+GitHub has no label groups, so labels are flat – created by `/woterclip-init`.
 
 ## Schedule Cadences
 
@@ -160,17 +160,21 @@ All labels live under a "WoterClip" parent group in Linear, created by `/wotercl
 | Background | Every 4-6 hours | `/schedule 4h /heartbeat` |
 | Manual only | No schedule | `/heartbeat` when needed |
 
+## Migrating from Linear (v1 configs)
+
+WoterClip was originally Linear-backed. If a repo has a `version: 1` config (`linear:` section), re-run `/woterclip-init` – it detects the old schema and migrates: your GitHub login replaces the Linear display name (you'll be asked – they're not the same thing), the repo replaces the team, and labels are recreated on GitHub. Linear issue data is not migrated.
+
 ## Migrating from Paperclip
 
 Use `/persona-import` to convert Paperclip agent directories into WoterClip personas. It maps SOUL.md, TOOLS.md, HEARTBEAT.md role-specific sections, and AGENTS.md safety rules into the WoterClip format. Budget tracking, PARA memory, and approval workflows are not imported (replaced by Claude Code built-in features or intentionally omitted from v1).
 
 ## Background
 
-WoterClip is inspired by [Paperclip](https://github.com/paperclipai/paperclip), an agent orchestration platform that uses a central API for task management, agent checkout, and chain-of-command routing. WoterClip takes the same core ideas – persona-based identity, structured heartbeats, hierarchical escalation – and rebuilds them as a Claude Code plugin backed by Linear instead of a custom API. The result is simpler (no server, no database, no separate processes) while keeping the parts that worked well: SOUL.md for agent identity, structured comments for audit trails, and a CEO/worker hierarchy for task decomposition.
+WoterClip is inspired by [Paperclip](https://github.com/paperclipai/paperclip), an agent orchestration platform that uses a central API for task management, agent checkout, and chain-of-command routing. WoterClip takes the same core ideas – persona-based identity, structured heartbeats, hierarchical escalation – and rebuilds them as a Claude Code plugin backed by GitHub Issues instead of a custom API. The result is simpler (no server, no database, no separate processes) while keeping the parts that worked well: SOUL.md for agent identity, structured comments for audit trails, and a CEO/worker hierarchy for task decomposition.
 
 ## Design
 
-See [`docs/specs/2026-03-25-woterclip-design.md`](docs/specs/2026-03-25-woterclip-design.md) for the full design spec and [`docs/specs/2026-03-25-woterclip-implementation-plan.md`](docs/specs/2026-03-25-woterclip-implementation-plan.md) for the build order.
+See [`docs/specs/2026-03-25-woterclip-design.md`](docs/specs/2026-03-25-woterclip-design.md) for the full design spec and [`docs/specs/2026-03-25-woterclip-implementation-plan.md`](docs/specs/2026-03-25-woterclip-implementation-plan.md) for the build order. (The specs describe the original Linear-backed design – the tracker swap to GitHub Issues happened in [#1](https://github.com/wotai-dev/woterclip/issues/1).)
 
 ## License
 

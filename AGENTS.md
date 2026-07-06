@@ -3,7 +3,9 @@
   ~/.config/compound-engineering/AGENTS.md.template, calibrated against
   compound-engineering plugin version 3.18.0 (2026-07-06).
 
-  This file is gitignored (local process doc, imported by CLAUDE.md via @AGENTS.md).
+  This file is tracked in git (imported by CLAUDE.md via @AGENTS.md) — originally
+  gitignored per the template default, un-ignored in #1 so the import resolves for
+  every contributor.
   Repo-specific decisions baked in: GitHub Issues tracker (wotai-dev/woterclip,
   single-project — no Projects board), worktree branching via /ce-worktree, no UI
   (browser-testing block replaced by the plugin validation checklist), no test
@@ -100,7 +102,7 @@ The GitHub Issues bookends (issue lifecycle, status transitions) and the Convent
 | **Standard** | New persona template following the 3-file pattern, new command or skill mirroring an existing one, new `references/*.md` wired into a skill, docs/spec updates | `/ce-plan` → `/ce-work` → `/ce-code-review` → `/ce-commit-push-pr` |
 | **Safety-critical** | `skills/heartbeat/SKILL.md` (the core loop), `templates/config.yaml` schema, the init skill's migration logic, `hooks/hooks.json`, anything touching the label state machine (`agent-working`/`agent-blocked`) or lockfile create/delete paths | `/ce-brainstorm` → `/ce-plan` (every unit gets `Execution note: validate-first`) → `/ce-work` → `/ce-code-review` → `/ce-commit-push-pr` → `/ce-compound` |
 
-Why these surfaces are safety-critical: this repo's bugs don't corrupt data *here* — they corrupt **other repos' orchestration state**. A bad heartbeat edit can clobber Linear labels (labels are managed read-modify-write, so a wrong write erases labels the agent never touched), strand a lockfile (the agent silently stops picking up work forever), or violate the `agent-working`/`agent-blocked` mutual exclusion the whole state machine assumes. A `templates/config.yaml` schema change without a `version` bump + matching init-skill migration breaks every already-scaffolded repo on its next init. And this is a public plugin — a merged bug ships to every installer.
+Why these surfaces are safety-critical: this repo's bugs don't corrupt data *here* — they corrupt **other repos' orchestration state**. A bad heartbeat edit can misapply GitHub labels (breaking inbox filtering and the state machine for every scaffolded repo), strand a lockfile (the agent silently stops picking up work forever), or violate the `agent-working`/`agent-blocked` mutual exclusion the whole state machine assumes. A `templates/config.yaml` schema change without a `version` bump + matching init-skill migration breaks every already-scaffolded repo on its next init. And this is a public plugin — a merged bug ships to every installer.
 
 `/ce-code-review` is mandatory before merge for this tier.
 
@@ -143,7 +145,7 @@ Run `/ce-compound` after any non-trivial fix, decision, or pattern discovery. It
 
 - A new learning **contradicts or supersedes** an older entry in the same area (e.g., the Orchestrator/CEO persona split made any pre-split "CEO does triage" note misleading).
 - Cited file paths or names **moved or were renamed** (e.g., the runtime scaffold moved from `.claude/woterclip/` to `.woterclip/`).
-- Tooling or platform references **changed** (Claude Code plugin-loader behavior shifts, Linear MCP tool renames, marketplace.json schema changes).
+- Tooling or platform references **changed** (Claude Code plugin-loader behavior shifts, `gh` CLI behavior changes, marketplace.json schema changes).
 - An entry references **deprecated patterns** that have been replaced repo-wide.
 - Periodic **monthly sweep** when reviewing `docs/solutions/` — quick scan for entries older than 60 days, prune or refresh anything that no longer reflects the repo.
 
@@ -166,7 +168,7 @@ Relevant when implementing or debugging in documented areas — search before re
 
 All work on this repo is tracked as **GitHub Issues** on `wotai-dev/woterclip`. Issues are referenced by their repo-scoped number — `#N` (e.g. `#42`) — with no team prefix. Cross-repo references use `wotai-dev/<repo>#N`.
 
-(Not to be confused with the plugin's *runtime* tracker: WoterClip-the-plugin orchestrates **Linear** issues in target repos. Development of the plugin itself is tracked here, on GitHub.)
+(The plugin's *runtime* tracker is also GitHub Issues — WoterClip orchestrates issues in whatever repo it's scaffolded into, via the `gh` CLI. This section is about tracking development of the plugin itself.)
 
 Single-project repo → **no GitHub Projects board.** Plain GitHub Issues (open/closed + labels) are enough: the issue's open→closed state *is* the lifecycle, and `Closes #N` in a merged PR closes it.
 

@@ -20,7 +20,7 @@ Convert a Paperclip agent directory into a WoterClip persona. Maps Paperclip's a
 | `SOUL.md` | `SOUL.md` | Copy as-is — identity, posture, voice |
 | `HEARTBEAT.md` | Append to `SOUL.md` | Only the role-specific responsibilities section (bottom). Skip the generic heartbeat procedure (top) — replaced by the plugin's heartbeat skill |
 | `AGENTS.md` | `config.yaml` + `SOUL.md` | Safety rules → append to SOUL.md Boundaries section. Workspace paths → drop. Memory refs → drop |
-| `TOOLS.md` | `TOOLS.md` | Copy, replacing Paperclip API references with Linear MCP equivalents |
+| `TOOLS.md` | `TOOLS.md` | Copy, replacing Paperclip API references with `gh` CLI equivalents |
 | `life/`, `memory/` | Skip | Claude Code has built-in memory |
 
 ## Import Procedure
@@ -39,7 +39,7 @@ If `SOUL.md` doesn't exist, stop — this is not a valid Paperclip agent directo
 
 Ask the user:
 1. **Persona name** — e.g., "Backend Engineer" (pre-fill from SOUL.md if obvious)
-2. **Linear label** — e.g., `backend` (must be unique)
+2. **GitHub label** — e.g., `backend` (must be unique)
 3. **Role type** — `engineer`, `orchestrator`, `analyst`, or custom
 4. **Model** — `opus`, `sonnet`, or `haiku` (suggest based on role)
 5. **Escalates to** — default: `ceo`
@@ -56,10 +56,10 @@ Ask the user:
 
 1. Start with the Paperclip `TOOLS.md` content
 2. Replace Paperclip API references:
-   - `paperclip` skill → `mcp__claude_ai_Linear__*` (Linear MCP tools)
+   - `paperclip` skill → `gh` CLI commands (`gh issue view/edit/comment`, etc.)
    - `para-memory-files` → drop (replaced by Claude Code built-in memory)
-   - Paperclip API calls (`POST /checkout`, `PATCH /api/issues`) → Linear MCP equivalents
-3. Add a "## Required" section listing `mcp__claude_ai_Linear` and any other tool prefixes
+   - Paperclip API calls (`POST /checkout`, `PATCH /api/issues`) → `gh` CLI equivalents
+3. Add a "## Required" section listing `gh` and any other tools
 4. If AGENTS.md references playbooks, note them for manual migration
 
 ### Step 5: Generate config.yaml
@@ -73,7 +73,7 @@ label: <label>
 escalates_to: <escalates_to>
 
 required_tools:
-  - mcp__claude_ai_Linear
+  - gh
   # additional tools based on TOOLS.md
 
 runtime:
@@ -90,7 +90,7 @@ runtime:
 1. Create `.woterclip/personas/<label>/`
 2. Write `SOUL.md`, `TOOLS.md`, `config.yaml`
 3. Update `.woterclip/config.yaml` to add the persona to the `personas` map
-4. Create the Linear label if it doesn't exist
+4. Create the GitHub label if it doesn't exist (`gh label create`)
 
 ### Step 7: Summary
 

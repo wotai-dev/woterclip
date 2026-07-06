@@ -12,7 +12,7 @@ Parse and summarize the WoterClip heartbeat log file (`.woterclip/heartbeat-log.
 
 Each line is a JSON object:
 ```json
-{"heartbeat": 7, "timestamp": "2026-03-25T10:15:00Z", "issue": "WOT-79", "persona": "backend", "duration_sec": 720, "status": "in_progress", "actions": ["committed a1b2c3d", "created sub-issue WOT-83"]}
+{"heartbeat": 7, "timestamp": "2026-03-25T10:15:00Z", "issue": "#79", "persona": "backend", "duration_sec": 720, "status": "in_progress", "actions": ["committed a1b2c3d", "created sub-issue #83"]}
 ```
 
 ## Procedure
@@ -30,9 +30,9 @@ Parse each line as JSON. Handle malformed lines gracefully (skip with warning).
 ```
 Heartbeat History
 ─────────────────
-#7  10:15  backend   WOT-79  In Progress  (12 min)
-#6  09:45  backend   WOT-81  Completed    (8 min)
-#5  09:15  ceo       WOT-80  Triaged      (4 min)
+#7  10:15  backend   #79  In Progress  (12 min)
+#6  09:45  backend   #81  Completed    (8 min)
+#5  09:15  ceo       #80  Triaged      (4 min)
 ```
 
 **Aggregate stats** (when asked for analytics or summary):
@@ -48,7 +48,7 @@ Heartbeat History
 
 Support filtering when the user asks:
 - **By persona**: "show backend heartbeats" → filter by `persona` field
-- **By issue**: "show activity for WOT-79" → filter by `issue` field
+- **By issue**: "show activity for #79" → filter by `issue` field
 - **By date range**: "show today's heartbeats" → filter by `timestamp`
 - **By status**: "show blocked heartbeats" → filter by `status`
 
