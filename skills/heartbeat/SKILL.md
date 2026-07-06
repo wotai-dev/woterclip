@@ -16,6 +16,7 @@ Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve t
 - `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md` — Comment templates and rules
 - `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` — Label lifecycle and atomic label operations
 - `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
+- `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` — Canonical create/attach/verify procedure for sub-issues
 
 All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
@@ -79,10 +80,14 @@ Apply runtime config from persona's `config.yaml`:
 
 ## Step 5: Validate Tools
 
-Read `required_tools` from persona config. Entries are executables/capabilities, not MCP prefixes:
+Read `required_tools` from persona config. Verify each entry by its kind:
 - `gh` → verify with `gh auth status` (exit 0) — this proves both the CLI and authentication
+- `mcp__*` entries (e.g., `mcp__neon`) → these are MCP tool prefixes, not executables: verify by checking whether any tool starting with that prefix is available in the current session. Never run `command -v` on an `mcp__*` name.
 - Other executables (e.g., `docker`) → verify with `command -v <tool>`
-- If a required tool is **unavailable** → stop work on this issue immediately
+
+**If `gh` itself is unavailable or unauthenticated:** no GitHub mutation is possible — do not attempt the blocked-comment path (it needs gh). Log the failure locally to `.woterclip/heartbeat-log.jsonl`, delete the lockfile, and exit with an error message telling the user to run `gh auth login`. (Same rule as the mid-work failure in step 8.)
+
+**If any other required tool is unavailable** → stop work on this issue immediately:
   - Post a blocked comment naming the missing tool
   - Apply `agent-blocked` label, remove `agent-working` if present:
     `gh issue edit N --add-label agent-blocked --remove-label agent-working`
@@ -97,7 +102,7 @@ Read `required_tools` from persona config. Entries are executables/capabilities,
 ## Step 7: Understand Context
 
 1. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
-2. If the issue is a sub-issue, read its parent for broader context (`gh api repos/<owner>/<name>/issues/N --jq '.sub_issues_summary, .parent // empty'` — or follow the parent reference in the issue body).
+2. If the issue is a sub-issue, read its parent for broader context: follow the `Parent: #N` reference in the issue body (guaranteed by the sub-issue creation procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`), then `gh issue view <parent> --json title,body,comments`.
 3. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
 4. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
 
@@ -111,9 +116,7 @@ Follow the persona's SOUL.md instructions. This step varies by persona:
 
 **Worker personas (backend, frontend, etc.):**
 - Use repo tools (Read, Write, Edit, Bash, Grep, Glob) to implement changes
-- For large scope: decompose into GitHub sub-issues —
-  1. Create each: `gh issue create --repo <owner/name> --title "..." --body "..." --label <persona-label>`
-  2. Attach to the parent: `gh api repos/<owner>/<name>/issues/<parent>/sub_issues -f sub_issue_id=<id>` (the sub-issue's **ID**, from `gh api repos/<owner>/<name>/issues/<number> --jq .id`)
+- For large scope: decompose into GitHub sub-issues following `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + persona label + `Parent: #N` body reference, attach by issue ID with `-F sub_issue_id=`, verify the attach, summarize on the parent)
 - For small scope: work directly, use internal tasks to track progress
 - Commit changes with descriptive conventional commit messages
 - Respect `max_turns` from persona config as a work budget
@@ -143,10 +146,12 @@ Read the issue's current labels (`gh issue view N --json labels`), then update b
 | Outcome | Labels | State |
 |---------|--------|--------|
 | **Completed** | Remove `agent-working` | Close the issue (`gh issue close N --comment "..."`) — or swap to `in-review` label if a PR was opened |
-| **Blocked** | Remove `agent-working`, add `agent-blocked` | Stays open |
+| **Blocked** | Remove `agent-working`, add `agent-blocked` (one combined `gh issue edit`) | Stays open |
 | **More work needed** | Keep `agent-working`, ensure `in-progress` | Stays open |
 
-For blocked issues: @-mention the Board user's GitHub login in the comment text (e.g., "**@alexk1919** — please review") — a real mention that notifies them.
+If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
+
+For blocked issues: @-mention the Board user's GitHub login in the comment text (e.g., "**@board-login** — please review"). Note: GitHub does not notify a user of their own comments — if `github.board_user` is the same account gh is authenticated as, the mention will NOT produce a notification; the Board must watch the repo or check `/woterclip-status` for blocked items.
 
 ## Step 11: Next Issue or Exit
 

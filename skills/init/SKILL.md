@@ -30,6 +30,8 @@ Before starting, verify the `gh` CLI is ready:
    - The **repo** whose issues drive the heartbeat (default: the current checkout's repo)
    - The **Board user's GitHub login** for @-mentions in comments (pre-filled from `gh api user`)
 
+When the confirmed Board user equals the authenticated login (the common single-account setup), warn: GitHub does not notify a user of their own comments, so blocked-escalation @-mentions will not produce notifications — the Board should watch the repo or rely on `/woterclip-status`. A separate bot/machine account for `gh auth` avoids this.
+
 ### Step 2: Choose Persona Preset
 
 Ask the user which persona set to scaffold:
@@ -51,10 +53,12 @@ GitHub labels are flat (no groups). Create the WoterClip labels on the target re
 2. Create each missing label with `gh label create <name> --repo <owner/name> --color <hex> --description "<desc>"`:
    - `agent-working` (color `0E8A16`) — state label for active work
    - `agent-blocked` (color `B60205`) — state label for blocked issues
+   - `in-progress` and `in-review` — status labels the heartbeat writes on state transitions
+   - `priority:high` and `priority:low` — priority labels the Orchestrator writes when bumping sub-issues
    - One label per persona that has a non-null label (e.g., `backend` `1D76DB`, `frontend` `5319E7`)
 3. Skip creation for any label that already exists (matching on name).
 
-Optionally offer to create the status labels (`backlog`, `todo`, `in-progress`, `in-review`) and priority labels (`priority:high`, `priority:low`) — see `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md`. These are recommended but not required: the heartbeat treats unlabeled open issues as eligible.
+All labels above are created unconditionally — the heartbeat and Orchestrator write them (`gh issue edit --add-label` fails when a label doesn't exist on the repo). Only the human-managed `backlog` and `todo` status labels are optional — offer them, but the heartbeat treats unlabeled open issues as eligible without them (see `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md`).
 
 ### Step 4: Scaffold Config & Personas
 
@@ -129,12 +133,12 @@ Next steps:
 | `gh` not installed or not authenticated | Stop. Print install/auth instructions (`brew install gh`, `gh auth login`). |
 | No GitHub remote on the current repo | Stop. Ask user to run from a GitHub-hosted checkout or pass the repo explicitly. |
 | Label creation fails | Log the error, continue with remaining labels, report at end. |
-| `.woterclip/` already exists | Ask user: overwrite, merge, or cancel. Default to merge (skip existing files). |
+| `.woterclip/` already exists | Check the config `version` FIRST (see Re-initialization & Migration below — a `version: 1` config must migrate before any overwrite/merge/cancel choice). Then ask: overwrite, merge, or cancel. Default to merge (skip existing files). |
 | Template file missing from plugin | Log warning, create a minimal placeholder, continue. |
 
 ## Re-initialization & Migration
 
-If `.woterclip/config.yaml` already exists:
+If `.woterclip/config.yaml` already exists, **read the config `version` first — before offering any overwrite/merge/cancel choice** (a merge that "skips existing files" must never skip the migration):
 
 1. Read the existing config `version`.
 2. **If `version: 1` (Linear-era config), run the v1→v2 migration:**
@@ -142,9 +146,11 @@ If `.woterclip/config.yaml` already exists:
    - `linear.team` → discarded; `github.repo` comes from `gh repo view` (confirm with the user).
    - `linear.project` → discarded (no equivalent; GitHub milestones are out of scope).
    - `labels.group` → dropped (GitHub has no label groups; labels are flat).
-   - `labels.working` / `labels.blocked` and the entire `personas` + `heartbeat` sections carry over unchanged.
+   - `labels.working` / `labels.blocked` and the `heartbeat` section carry over unchanged.
+   - **Migrate every scaffolded persona config**: in each `.woterclip/personas/*/config.yaml`, replace `mcp__claude_ai_Linear` in `required_tools` with `gh` (heartbeat step 5 now validates `gh` via `gh auth status`; a leftover Linear entry would auto-block every issue for that persona). Flag Linear-era `TOOLS.md` files for regeneration from the plugin templates.
    - Write `version: 2`. Back up the old config to `config.yaml.bak` first.
    - Create the GitHub labels (step 3) — Linear labels are not migrated automatically.
+   - **Post-migration check**: re-parse the migrated config and confirm no `required_tools` entry anywhere under `.woterclip/personas/` still references `mcp__claude_ai_Linear`.
 3. Otherwise ask the user: **overwrite** (fresh start), **merge** (add missing personas only), or **cancel**.
 4. For merge: only create persona directories and labels that don't exist yet.
 5. For overwrite: back up existing config to `config.yaml.bak` before writing.

@@ -23,7 +23,7 @@ Ask the user for:
 3. **Label** — GitHub label for routing issues to this persona (e.g., `qa`, `infra`, `research`). Must be unique across existing personas.
 4. **Escalates to** — Which persona to escalate to (default: `ceo`)
 5. **Model** — Runtime model: `opus`, `sonnet`, or `haiku` (suggest based on role complexity)
-6. **Required tools** — Beyond `gh`, which tools does this persona need? (e.g., `mcp__neon`, `mcp__plugin_playwright_playwright`)
+6. **Required tools** — Beyond `gh`, which tools does this persona need? Executables (e.g., `docker`) are verified with `command -v`; MCP tool prefixes (e.g., `mcp__neon`, `mcp__plugin_playwright_playwright`) are verified by in-session tool availability — the heartbeat's tool-validation step handles each kind differently, so list them exactly as named here.
 
 ### Step 2: Generate SOUL.md
 

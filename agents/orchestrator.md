@@ -59,21 +59,7 @@ Check recent similar issues for routing consistency before deciding (`gh issue l
 
 ### 4. Create Sub-Issues (if decomposing)
 
-For each sub-issue:
-1. Create it:
-   ```bash
-   gh issue create --repo <owner/name> \
-     --title "Clear, actionable title" \
-     --body "Scope and context from parent (reference the parent as #N)" \
-     --label <persona-label>
-   ```
-2. Attach it to the parent as a native GitHub sub-issue (uses the sub-issue's **ID**, not its number):
-   ```bash
-   sub_id=$(gh api repos/<owner>/<name>/issues/<sub-number> --jq .id)
-   gh api repos/<owner>/<name>/issues/<parent-number>/sub_issues -f sub_issue_id=$sub_id
-   ```
-3. Priority: inherit the parent's `priority:*` label if present; blocking sub-issues get `priority:high`.
-4. Post a comment on the parent summarizing the decomposition.
+Follow the canonical procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`: create each sub-issue with `--assignee @me`, the persona label, and a `Parent: #N` body reference; resolve its issue **ID**; attach with `gh api .../sub_issues -F sub_issue_id=`; **verify the attach** (on failure, comment on the parent naming unattached children); inherit the parent's `priority:*` label (blocking sub-issues get `priority:high`); then post a decomposition summary comment on the parent.
 
 ### 5. Post Triage Comment
 
@@ -84,7 +70,7 @@ Post via `gh issue comment N --repo <owner/name> --body "..."`, following the co
 
 ### 6. Parent Completion Check
 
-When working on a sub-issue that just completed, check if all sibling sub-issues are also done (`gh api repos/<owner>/<name>/issues/<parent>/sub_issues --jq '.[].state'`). If so, close the parent with a summary comment listing all completed sub-issues (`gh issue close <parent> --comment "..."`).
+When working on a sub-issue that just completed, check whether all sibling sub-issues are also done (`gh api repos/<owner>/<name>/issues/<parent>/sub_issues --jq '.[].state'`), following the guards in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`: **never close the parent when the attached list is empty** (an empty list means failed/missing attaches, not completed work), and cross-check the list against the parent's decomposition summary comment. Close only when the list is non-empty and every state is `closed`, with a summary comment listing all completed sub-issues (`gh issue close <parent> --comment "..."`).
 
 ## Rules
 

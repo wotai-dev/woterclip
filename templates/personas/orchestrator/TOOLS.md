@@ -17,9 +17,7 @@ All commands target the repo from config `github.repo` — pass `--repo <owner/n
 
 ### Decompose into sub-issues
 
-1. `gh issue create --title "..." --body "..." --label <persona>` – create each child issue
-2. `gh api repos/<owner>/<name>/issues/<parent>/sub_issues -f sub_issue_id=<id>` – attach it to the parent (ID from `gh api repos/<owner>/<name>/issues/<number> --jq .id`)
-3. `gh issue comment <parent> --body "..."` – summarize decomposition on the parent
+Follow `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (canonical create/attach/verify procedure): create each child with `--assignee @me`, persona label, and `Parent: #N` body reference; attach by issue **ID** with `-F sub_issue_id=`; verify the attach; summarize the decomposition on the parent.
 
 ### Escalate to Board
 

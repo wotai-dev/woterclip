@@ -52,7 +52,9 @@ Clear description of what is blocking progress.
 - Always include persona name and issue reference in footer
 - Reference previous heartbeat comment link for carry-forward context
 - Blocked comments must @-mention who needs to act (Board user's GitHub login from config
-  `github.board_user`) — on GitHub this is a real mention that notifies them
+  `github.board_user`). Caveat: GitHub does not notify a user of their own comments — when
+  the Board user is the same account gh is authenticated as, the mention is visible but
+  produces no notification (the Board should watch the repo or use `/woterclip-status`)
 - Completion comments must list shipped commits/PRs with links
 - Use `⚠️` flag for uncertain work that needs manual verification
 - Fast-path triage comments: `**Triage:** → backend` for obvious routing

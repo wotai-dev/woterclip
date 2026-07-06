@@ -32,7 +32,11 @@ If no log file exists, report "No heartbeat history found."
 
 ### Step 4: Current Issues
 
-Run `gh issue list --repo <owner/name from config github.repo> --assignee @me --state open --json number,title,labels`. Filter and categorize:
+Run two queries against the repo from config `github.repo`:
+- Open issues (queue + blocked): `gh issue list --repo <owner/name> --assignee @me --state open --json number,title,labels`
+- Recently completed (closed since the last logged heartbeat timestamp): `gh issue list --repo <owner/name> --assignee @me --state closed --search "closed:>=<last-heartbeat-ISO-date>" --json number,title,labels,closedAt`
+
+Filter and categorize:
 
 **Since last heartbeat** (issues that changed since the last logged heartbeat timestamp):
 - `✓` Completed issues

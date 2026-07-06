@@ -68,8 +68,16 @@ gh issue edit 42 --repo <owner/name> --add-label agent-working
 gh issue edit 42 --repo <owner/name> --remove-label agent-working --add-label agent-blocked
 ```
 
+Make mutually-exclusive transitions (working ↔ blocked) in **one combined** `gh issue edit` with both `--add-label` and `--remove-label`, never two separate calls — a failure between split calls would leave both labels present.
+
+If `--add-label` fails because the label doesn't exist on the repo (`could not add label: '<name>' not found`), create it first (`gh label create <name> --repo <owner/name>`) and retry the edit — `gh issue edit` never auto-creates labels.
+
 To read current labels (for state checks, not for writes):
 
 ```bash
 gh issue view 42 --repo <owner/name> --json labels --jq '.labels[].name'
 ```
+
+## Concurrency Assumption
+
+WoterClip assumes a **single agent runner per repo**. The heartbeat lockfile (`.woterclip/.heartbeat-lock`) only guards one checkout — it does not coordinate multiple checkouts or machines operating on the same GitHub repo. Do not run scheduled heartbeats for the same repo from more than one place; labels are a shared surface and two runners would race past each other's `agent-working` markers.

@@ -2,7 +2,7 @@
 
 ## Required
 
-- **`gh` CLI** (via Bash): Read issues, post comments, update labels/state. Verify with `gh auth status`.
+- **`gh` CLI** (via Bash): Read issues, post comments, update labels/state. Verify with `gh auth status`. Target the repo from config `github.repo` — pass `--repo <owner/name>` explicitly on every issue command.
 - **Repo tools** (Read, Write, Edit, Bash, Grep, Glob): Full codebase access for implementation.
 
 ## Common Patterns

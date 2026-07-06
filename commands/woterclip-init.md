@@ -13,4 +13,4 @@ Follow the full initialization procedure from the skill:
 6. Offer schedule setup
 7. Print summary of what was created
 
-If `.woterclip/` already exists, ask whether to overwrite, merge, or cancel before proceeding. If the existing config is `version: 1` (Linear-era), run the v1→v2 migration from the skill's Re-initialization section.
+If `.woterclip/` already exists, check the existing config's `version` FIRST: a `version: 1` (Linear-era) config runs the v1→v2 migration from the skill's Re-initialization section before anything else. Only then ask whether to overwrite, merge, or cancel.

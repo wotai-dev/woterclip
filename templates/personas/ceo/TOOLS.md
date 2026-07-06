@@ -18,13 +18,13 @@ All commands target the repo from config `github.repo` — pass `--repo <owner/n
 
 1. `gh issue view <parent> --json title,body,labels` – read the parent issue
 2. `gh api repos/<owner>/<name>/issues/<parent>/sub_issues` – check existing sub-issues
-3. `gh issue create` + `gh api .../sub_issues -f sub_issue_id=<id>` – create/attach sub-issues with correct sequencing and labels
+3. Create/attach sub-issues with correct sequencing and labels per `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + `Parent: #N` body reference; attach by issue **ID** with `-F sub_issue_id=`; verify the attach)
 4. `gh issue comment <parent> --body "..."` – post the approved breakdown
 
 ### Communicate with the Board
 
 1. `gh issue comment N --body "..."` – post a status summary or recommendation
-2. @-mention the Board user (`github.board_user`) for visibility — a real GitHub mention that notifies them
+2. @-mention the Board user (`github.board_user`) for visibility (note: GitHub does not notify self-mentions — if the Board user is the same account gh is authenticated as, they must watch the repo instead)
 
 ### Coordinate cross-cutting work
 

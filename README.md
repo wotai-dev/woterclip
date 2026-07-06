@@ -40,6 +40,8 @@ claude --plugin-dir /path/to/woterclip
 
 No MCP server is required – all GitHub operations go through the `gh` CLI, so scheduled heartbeats work headlessly.
 
+Note on notifications: the agent posts comments as whatever account `gh` is authenticated as, and GitHub never notifies a user of their own comments. If you authenticate `gh` with your personal account (the common setup), blocked-escalation @-mentions won't notify you – watch the repo or check `/woterclip-status`. A separate bot/machine account for `gh auth` gives you real mention notifications.
+
 ## Quick Start
 
 ```bash

@@ -3,7 +3,9 @@
   ~/.config/compound-engineering/AGENTS.md.template, calibrated against
   compound-engineering plugin version 3.18.0 (2026-07-06).
 
-  This file is gitignored (local process doc, imported by CLAUDE.md via @AGENTS.md).
+  This file is tracked in git (imported by CLAUDE.md via @AGENTS.md) — originally
+  gitignored per the template default, un-ignored in #1 so the import resolves for
+  every contributor.
   Repo-specific decisions baked in: GitHub Issues tracker (wotai-dev/woterclip,
   single-project — no Projects board), worktree branching via /ce-worktree, no UI
   (browser-testing block replaced by the plugin validation checklist), no test

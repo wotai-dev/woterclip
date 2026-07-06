@@ -100,4 +100,5 @@ README quickstart works against GitHub; CLAUDE.md/AGENTS.md describe the GitHub 
 
 Full checklist from AGENTS.md: YAML parse on all `.yaml`, frontmatter on all skills/
 commands/agents, `${CLAUDE_PLUGIN_ROOT}` references resolve, local plugin-load smoke check,
-final repo-wide Linear grep (expect: docs/specs + brainstorm/plan docs only).
+final repo-wide Linear grep (expect, per Unit 7: docs/specs, the brainstorm/plan docs, and
+deliberate "formerly Linear" migration notes only).
