@@ -1,3 +1,5 @@
 .claude/
 .env*.local
 *.bak
+
+AGENTS.md
