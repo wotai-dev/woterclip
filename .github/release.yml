@@ -1,14 +1,14 @@
 changelog:
   exclude:
-    labels: [ignore-for-release]
+    labels: ["ignore-for-release"]
   categories:
-    - title: 🚀 Features
-      labels: [type:feature]
-    - title: 🐛 Fixes
-      labels: [type:bug]
-    - title: 🔧 Improvements
-      labels: [type:improvement]
-    - title: 📚 Docs
-      labels: [area:docs]
-    - title: Other Changes
+    - title: "🚀 Features"
+      labels: ["type:feature"]
+    - title: "🐛 Fixes"
+      labels: ["type:bug"]
+    - title: "🔧 Improvements"
+      labels: ["type:improvement"]
+    - title: "📚 Docs"
+      labels: ["area:docs"]
+    - title: "Other Changes"
       labels: ["*"]
