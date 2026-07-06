@@ -1,11 +1,11 @@
 {
   "name": "woterclip",
   "version": "0.1.0",
-  "description": "Linear-backed agent orchestration with persona-based task routing for Claude Code",
+  "description": "GitHub Issues-backed agent orchestration with persona-based task routing for Claude Code",
   "author": {
     "name": "Alex Kim"
   },
   "repository": "https://github.com/wotai-dev/woterclip",
   "license": "MIT",
-  "keywords": ["linear", "agent", "orchestration", "persona", "heartbeat"]
+  "keywords": ["github", "github-issues", "agent", "orchestration", "persona", "heartbeat"]
 }

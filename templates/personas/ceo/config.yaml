@@ -4,7 +4,7 @@ label: ceo
 escalates_to: board
 
 required_tools:
-  - mcp__claude_ai_Linear          # Prefix match – covers all Linear MCP tools
+  - gh                             # GitHub CLI – verified via `gh auth status`
 
 runtime:
   model: sonnet                    # Strategic thinking needs good reasoning, not max

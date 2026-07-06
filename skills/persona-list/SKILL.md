@@ -28,10 +28,10 @@ For each persona in the `personas` config map:
 WoterClip Personas
 ──────────────────
 Name              Label       Model    Turns  Escalates  Tools
-Orchestrator      (default)   haiku    50     ceo        Linear
-CEO               ceo         sonnet   100    board      Linear
-Backend Engineer  backend     opus     300    ceo        Linear
-Frontend Engineer frontend    sonnet   200    ceo        Linear
+Orchestrator      (default)   haiku    50     ceo        gh
+CEO               ceo         sonnet   100    board      gh
+Backend Engineer  backend     opus     300    ceo        gh
+Frontend Engineer frontend    sonnet   200    ceo        gh
 
 Files:
   Orchestrator: .woterclip/personas/orchestrator/ ✓ SOUL ✓ TOOLS ✓ config

@@ -1,32 +1,34 @@
 ---
 name: woterclip-init
-description: This skill should be used when the user asks to "initialize woterclip", "set up woterclip", "woterclip init", "configure woterclip for this repo", or runs the /woterclip-init command. Scaffolds a repo with WoterClip config, persona directories, and Linear labels.
-version: 0.1.0
+description: This skill should be used when the user asks to "initialize woterclip", "set up woterclip", "woterclip init", "configure woterclip for this repo", or runs the /woterclip-init command. Scaffolds a repo with WoterClip config, persona directories, and GitHub labels.
+version: 0.2.0
 ---
 
 # WoterClip Initialization
 
-Initialize WoterClip in the current repository. This creates the `.woterclip/` directory with config, persona templates, and corresponding Linear labels.
+Initialize WoterClip in the current repository. This creates the `.woterclip/` directory with config, persona templates, and corresponding GitHub labels.
 
 ## Prerequisites
 
-Before starting, verify the Linear MCP is available:
+Before starting, verify the `gh` CLI is ready:
 
-1. Check that `mcp__claude_ai_Linear__list_teams` is callable
-2. If not available, stop and instruct the user to connect Linear MCP first:
-   - Add Linear MCP to `.mcp.json` or global MCP config
-   - Restart Claude Code session
+1. Run `gh auth status` — must exit 0 (installed **and** authenticated)
+2. Run `gh repo view --json nameWithOwner` — must resolve (the current directory is a repo with a GitHub remote)
+3. If either fails, stop and instruct the user:
+   - Install: `brew install gh` (or the platform equivalent)
+   - Authenticate: `gh auth login`
+   - Run from a checkout whose `origin` points at GitHub
    - Re-run `/woterclip-init`
 
 ## Initialization Procedure
 
-### Step 1: Gather Linear Context
+### Step 1: Gather GitHub Context
 
-1. Call `mcp__claude_ai_Linear__list_teams` to fetch available teams
-2. Call `mcp__claude_ai_Linear__list_users` to identify the current user
+1. Run `gh repo view --json nameWithOwner --jq .nameWithOwner` to resolve the target repo
+2. Run `gh api user --jq .login` to identify the authenticated user
 3. Present findings and ask the user to confirm:
-   - Which **team** to use (if multiple teams exist)
-   - Their **display name** for @-mentions in comments (pre-filled from Linear)
+   - The **repo** whose issues drive the heartbeat (default: the current checkout's repo)
+   - The **Board user's GitHub login** for @-mentions in comments (pre-filled from `gh api user`)
 
 ### Step 2: Choose Persona Preset
 
@@ -39,21 +41,20 @@ Ask the user which persona set to scaffold:
 | **minimal** | Orchestrator, CEO only |
 | **custom** | Orchestrator, CEO + user-specified personas |
 
-For "custom", ask the user to name each persona and its Linear label.
+For "custom", ask the user to name each persona and its GitHub label.
 
-### Step 3: Create Linear Labels
+### Step 3: Create GitHub Labels
 
-Create the WoterClip label group and child labels in Linear:
+GitHub labels are flat (no groups). Create the WoterClip labels on the target repo:
 
-1. Call `mcp__claude_ai_Linear__create_issue_label` to create the parent group label named after `labels.group` (default: "WoterClip")
-2. Create child labels under this group:
-   - `agent-working` — state label for active work
-   - `agent-blocked` — state label for blocked issues
-   - One label per persona that has a non-null label (e.g., `backend`, `frontend`)
+1. Check what already exists: `gh label list --repo <owner/name> --limit 200`
+2. Create each missing label with `gh label create <name> --repo <owner/name> --color <hex> --description "<desc>"`:
+   - `agent-working` (color `0E8A16`) — state label for active work
+   - `agent-blocked` (color `B60205`) — state label for blocked issues
+   - One label per persona that has a non-null label (e.g., `backend` `1D76DB`, `frontend` `5319E7`)
+3. Skip creation for any label that already exists (matching on name).
 
-Use `mcp__claude_ai_Linear__list_issue_labels` first to check if labels already exist. Skip creation for any label that already exists.
-
-**Important:** The Linear MCP's `create_issue_label` accepts `name`, `color`, and optionally `parentId` (for grouping under a parent label). Fetch the parent group label's ID after creating it, then pass it as `parentId` for child labels.
+Optionally offer to create the status labels (`backlog`, `todo`, `in-progress`, `in-review`) and priority labels (`priority:high`, `priority:low`) — see `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md`. These are recommended but not required: the heartbeat treats unlabeled open issues as eligible.
 
 ### Step 4: Scaffold Config & Personas
 
@@ -82,8 +83,8 @@ Use `mcp__claude_ai_Linear__list_issue_labels` first to check if labels already 
 
 2. Copy templates from the plugin's `templates/` directory:
    - Read each template file from `${CLAUDE_PLUGIN_ROOT}/templates/`
-   - Replace `{{USER_NAME}}` with the user's Linear display name
-   - Replace `{{TEAM}}` with the selected team name
+   - Replace `{{USER_NAME}}` with the Board user's GitHub login
+   - Replace `{{REPO}}` with the target repo (`owner/name`)
    - Write to `.woterclip/`
 
 3. Update `config.yaml` personas section to match the selected preset — remove entries for personas that weren't scaffolded.
@@ -102,8 +103,7 @@ Display what was created:
 ```
 WoterClip initialized!
 
-Linear labels created:
-  ✓ WoterClip (group)
+GitHub labels created on owner/name:
   ✓ agent-working
   ✓ agent-blocked
   ✓ backend
@@ -126,17 +126,25 @@ Next steps:
 
 | Error | Response |
 |-------|----------|
-| Linear MCP not available | Stop. Print setup instructions for connecting Linear MCP. |
-| No teams found | Stop. Ask user to verify Linear workspace access. |
+| `gh` not installed or not authenticated | Stop. Print install/auth instructions (`brew install gh`, `gh auth login`). |
+| No GitHub remote on the current repo | Stop. Ask user to run from a GitHub-hosted checkout or pass the repo explicitly. |
 | Label creation fails | Log the error, continue with remaining labels, report at end. |
 | `.woterclip/` already exists | Ask user: overwrite, merge, or cancel. Default to merge (skip existing files). |
 | Template file missing from plugin | Log warning, create a minimal placeholder, continue. |
 
-## Re-initialization
+## Re-initialization & Migration
 
 If `.woterclip/config.yaml` already exists:
 
-1. Read the existing config version
-2. Ask the user: **overwrite** (fresh start), **merge** (add missing personas only), or **cancel**
-3. For merge: only create persona directories and labels that don't exist yet
-4. For overwrite: back up existing config to `config.yaml.bak` before writing
+1. Read the existing config `version`.
+2. **If `version: 1` (Linear-era config), run the v1→v2 migration:**
+   - `linear.user_name` → **ask the user for their GitHub login** — a Linear display name is not a GitHub login; never guess. Pre-fill from `gh api user --jq .login`.
+   - `linear.team` → discarded; `github.repo` comes from `gh repo view` (confirm with the user).
+   - `linear.project` → discarded (no equivalent; GitHub milestones are out of scope).
+   - `labels.group` → dropped (GitHub has no label groups; labels are flat).
+   - `labels.working` / `labels.blocked` and the entire `personas` + `heartbeat` sections carry over unchanged.
+   - Write `version: 2`. Back up the old config to `config.yaml.bak` first.
+   - Create the GitHub labels (step 3) — Linear labels are not migrated automatically.
+3. Otherwise ask the user: **overwrite** (fresh start), **merge** (add missing personas only), or **cancel**.
+4. For merge: only create persona directories and labels that don't exist yet.
+5. For overwrite: back up existing config to `config.yaml.bak` before writing.

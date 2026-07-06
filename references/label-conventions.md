@@ -1,10 +1,11 @@
 # Label Conventions
 
-WoterClip uses Linear labels for persona routing and agent state tracking.
+WoterClip uses GitHub issue labels for persona routing and agent state tracking.
 
-## Label Group
+## Label Namespace
 
-All WoterClip labels live under a parent group (default: `WoterClip`). The group name is configurable in `config.yaml` → `labels.group`.
+GitHub has no label groups — WoterClip labels are **flat**, created by `/woterclip-init`
+directly on the repo. Keep the names below verbatim so they match config defaults.
 
 ## State Labels
 
@@ -16,7 +17,7 @@ All WoterClip labels live under a parent group (default: `WoterClip`). The group
 ### State Label Rules
 
 - `agent-working` and `agent-blocked` are mutually exclusive — never both present
-- `agent-working` is added via read-modify-write: read current labels, append, save full set
+- Labels are changed with **atomic operations**: `gh issue edit N --add-label X --remove-label Y` — never rewrite the full label set, so concurrent human labeling is never clobbered
 - Stale `agent-working` labels (older than `stale_lock_hours`) are auto-cleaned by the heartbeat
 - `agent-blocked` issues are skipped unless new human comments exist since the last agent comment
 
@@ -39,24 +40,36 @@ Persona labels route issues to the right persona. Created by `/woterclip-init`.
 - Labels are applied by the Orchestrator during triage, or manually by the Board.
 - Custom persona labels are added via `/persona-create` and registered in `config.yaml`.
 
+## Status Labels (optional, human-managed)
+
+`backlog`, `todo`, `in-progress`, `in-review` carry the working-state distinctions GitHub's
+open/closed state can't (see `status-mapping.md`). The heartbeat reads them for inbox
+filtering and sets `in-progress`/`in-review` on state transitions; the Board manages
+`backlog`/`todo` by hand.
+
 ## Label Lifecycle
 
 ```
 New issue (no labels)
   → Orchestrator triages → adds persona label (e.g., "backend")
   → Heartbeat picks up → adds "agent-working"
-  → Work completes → removes "agent-working"
+  → Work completes → removes "agent-working", closes issue (or labels "in-review")
   → Or blocked → removes "agent-working", adds "agent-blocked"
   → Board unblocks → removes "agent-blocked"
   → Next heartbeat picks up again
 ```
 
-## Read-Modify-Write Pattern
+## Label Operations
 
-Linear labels are managed as arrays. To add or remove a label:
+GitHub label changes are atomic per operation — no read-modify-write needed:
 
-1. `get_issue` — read current labels array
-2. Modify the array (push or filter)
-3. `save_issue` — save the full label set
+```bash
+gh issue edit 42 --repo <owner/name> --add-label agent-working
+gh issue edit 42 --repo <owner/name> --remove-label agent-working --add-label agent-blocked
+```
 
-This is safe because WoterClip runs as a single instance per repo — no concurrent writers.
+To read current labels (for state checks, not for writes):
+
+```bash
+gh issue view 42 --repo <owner/name> --json labels --jq '.labels[].name'
+```

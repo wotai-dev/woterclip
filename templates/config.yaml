@@ -1,12 +1,11 @@
 # WoterClip Configuration
 # Created by /woterclip-init – customize for your repo
-version: 1
+version: 2
 
-# Linear workspace settings
-linear:
-  user_name: "{{USER_NAME}}"         # Board user's display name (used in @-mentions)
-  team: "{{TEAM}}"                   # Default team for new issues/sub-issues
-  project: null                      # Optional: scope inbox to a specific project
+# GitHub settings
+github:
+  board_user: "{{USER_NAME}}"        # Board user's GitHub login (used in @-mentions)
+  repo: "{{REPO}}"                   # owner/name — the repo whose issues drive the heartbeat
 
 # Heartbeat behavior
 heartbeat:
@@ -26,13 +25,13 @@ heartbeat:
     max_consecutive_failures: 3      # Pause schedule after N failures
     backoff_multiplier: 2            # Double interval on consecutive failures
 
-# Linear label configuration
+# GitHub label configuration
+# GitHub has no label groups — labels are flat, created by /woterclip-init
 labels:
-  group: "WoterClip"                 # Parent label group (auto-created by init)
   working: "agent-working"           # Applied while agent is working an issue
   blocked: "agent-blocked"           # Applied when agent is blocked
 
-# Persona routing: Linear label → persona directory
+# Persona routing: GitHub issue label → persona directory
 # The Orchestrator (is_default: true) handles issues with no persona label
 personas:
   orchestrator:

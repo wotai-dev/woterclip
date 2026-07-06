@@ -2,27 +2,30 @@
 
 ## Required
 
-- **Linear MCP** (`mcp__claude_ai_Linear__*`): Issue queries, label management, sub-issue creation, comments.
+- **`gh` CLI** (via Bash): Issue queries, label management, sub-issue creation, comments. Verify with `gh auth status`.
 
 ## Usage Patterns
 
+All commands target the repo from config `github.repo` — pass `--repo <owner/name>` explicitly.
+
 ### Triage an issue
 
-1. `list_issues` – fetch assigned issues (inbox scan)
-2. `get_issue` – read issue details, labels, parent
-3. `save_issue` – apply persona label, update status
-4. `save_comment` – post triage decision
+1. `gh issue list --assignee @me --state open --json number,title,labels` – fetch assigned issues (inbox scan)
+2. `gh issue view N --json title,body,labels,comments` – read issue details
+3. `gh issue edit N --add-label <persona>` – apply persona label
+4. `gh issue comment N --body "..."` – post triage decision
 
 ### Decompose into sub-issues
 
-1. `save_issue` with `parentId` – create child issues with persona labels
-2. `save_comment` on parent – summarize decomposition
+1. `gh issue create --title "..." --body "..." --label <persona>` – create each child issue
+2. `gh api repos/<owner>/<name>/issues/<parent>/sub_issues -f sub_issue_id=<id>` – attach it to the parent (ID from `gh api repos/<owner>/<name>/issues/<number> --jq .id`)
+3. `gh issue comment <parent> --body "..."` – summarize decomposition on the parent
 
 ### Escalate to Board
 
-1. `save_comment` – describe blocker, @-mention Board user
-2. `save_issue` – apply `agent-blocked` label
+1. `gh issue comment N --body "..."` – describe blocker, @-mention Board user (`github.board_user`)
+2. `gh issue edit N --add-label agent-blocked` – apply the blocked label
 
 ## Not Used
 
-The Orchestrator does not use repo tools (file read/write, git, bash, etc.). It only reads the WoterClip config to understand available personas.
+The Orchestrator does not use repo tools (file read/write, git, etc.) — Bash is for `gh` commands only. It only reads the WoterClip config to understand available personas.

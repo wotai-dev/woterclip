@@ -1,12 +1,12 @@
 ---
 name: heartbeat
-description: This skill should be used when the user asks to "run a heartbeat", "run the agent loop", "process Linear issues", "check for work", or runs the /heartbeat command. Executes the WoterClip heartbeat — picks up Linear issues, resolves personas, does work, and reports back.
-version: 0.1.0
+description: This skill should be used when the user asks to "run a heartbeat", "run the agent loop", "process GitHub issues", "check for work", or runs the /heartbeat command. Executes the WoterClip heartbeat — picks up GitHub issues, resolves personas, does work, and reports back.
+version: 0.2.0
 ---
 
 # WoterClip Heartbeat
 
-Execute the WoterClip heartbeat cycle: pick up assigned Linear issues, resolve the right persona, do the work, and report back with structured comments.
+Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve the right persona, do the work, and report back with structured comments. All GitHub operations go through the `gh` CLI — no MCP server required.
 
 **Arguments:**
 - `--dry-run` — Show what would be picked up without doing work
@@ -14,8 +14,10 @@ Execute the WoterClip heartbeat cycle: pick up assigned Linear issues, resolve t
 
 **Reference files** (consult as needed during execution):
 - `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md` — Comment templates and rules
-- `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` — Label lifecycle and read-modify-write pattern
-- `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — Linear states, sort order, inbox filtering
+- `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` — Label lifecycle and atomic label operations
+- `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
+
+All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
 ## Step 1: Load Config & Lock
 
@@ -33,15 +35,19 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
 
 ## Step 2: Check Inbox
 
-1. Call `mcp__claude_ai_Linear__list_issues` with filter for assigned issues (`assignee: "me"`).
-2. Filter client-side:
-   - **Keep** only issues with status "In Progress" or "Todo"
+1. Fetch open issues assigned to the authenticated user:
+   ```bash
+   gh issue list --repo <owner/name> --assignee @me --state open \
+     --json number,title,labels,createdAt --limit 100
+   ```
+2. Filter client-side (labels come from the JSON above):
+   - **Skip** issues labeled `backlog` or `in-review`
    - **Skip** issues without a persona label (unless Orchestrator is default and issue has no label)
-   - **Skip** `agent-blocked` issues unless new human comments exist since the last agent comment (check via `mcp__claude_ai_Linear__list_comments`)
+   - **Skip** `agent-blocked` issues unless new human comments exist since the last agent comment (check via `gh issue view N --json comments`)
 3. Sort:
-   - Primary: status — In Progress before Todo
-   - Secondary: priority — Urgent > High > Medium > Low > None
-4. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (remove `agent-working`, post cleanup comment).
+   - Primary: status label — `in-progress` before plain/`todo`
+   - Secondary: priority label — `priority:high` > no priority label > `priority:low`
+4. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (`gh issue edit N --remove-label agent-working`, post cleanup comment).
 
 ## Step 3: Pick Issue
 
@@ -50,9 +56,9 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
 3. If `--dry-run`, report what would be picked and exit:
    ```
    Dry run — would pick:
-     WOT-XX [backend] "Issue title" (In Progress, High)
+     #12 [backend] "Issue title" (in-progress, priority:high)
    Queue:
-     WOT-YY [frontend] "Other issue" (Todo, Medium)
+     #15 [frontend] "Other issue" (todo)
    ```
 4. If no issues match → delete lockfile and exit: "No issues in queue. Heartbeat complete."
 
@@ -73,24 +79,25 @@ Apply runtime config from persona's `config.yaml`:
 
 ## Step 5: Validate Tools
 
-Read `required_tools` from persona config. For each entry, verify the tool prefix is available:
-- `mcp__claude_ai_Linear` should match any tool starting with `mcp__claude_ai_Linear__`
-- If a required tool prefix has **no matching tools** available → stop work on this issue immediately
+Read `required_tools` from persona config. Entries are executables/capabilities, not MCP prefixes:
+- `gh` → verify with `gh auth status` (exit 0) — this proves both the CLI and authentication
+- Other executables (e.g., `docker`) → verify with `command -v <tool>`
+- If a required tool is **unavailable** → stop work on this issue immediately
   - Post a blocked comment naming the missing tool
-  - Apply `agent-blocked` label (read-modify-write)
-  - Remove `agent-working` if present
+  - Apply `agent-blocked` label, remove `agent-working` if present:
+    `gh issue edit N --add-label agent-blocked --remove-label agent-working`
   - Proceed to step 11 (next issue)
 
 ## Step 6: Lock Issue
 
-1. Call `mcp__claude_ai_Linear__get_issue` to read the issue's current labels.
-2. If `agent-working` is already present (from a previous heartbeat on same issue), proceed without re-saving.
-3. Otherwise, append `agent-working` to the labels array and call `mcp__claude_ai_Linear__save_issue` with the full label set.
+1. Read the issue's current labels: `gh issue view N --json labels --jq '.labels[].name'`.
+2. If `agent-working` is already present (from a previous heartbeat on same issue), proceed.
+3. Otherwise: `gh issue edit N --add-label agent-working` (atomic — no need to rewrite the label set).
 
 ## Step 7: Understand Context
 
-1. Read issue title, description, and all comments via `mcp__claude_ai_Linear__get_issue` and `mcp__claude_ai_Linear__list_comments`.
-2. If the issue has a parent, read the parent issue for broader context.
+1. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
+2. If the issue is a sub-issue, read its parent for broader context (`gh api repos/<owner>/<name>/issues/N --jq '.sub_issues_summary, .parent // empty'` — or follow the parent reference in the issue body).
 3. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
 4. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
 
@@ -104,40 +111,42 @@ Follow the persona's SOUL.md instructions. This step varies by persona:
 
 **Worker personas (backend, frontend, etc.):**
 - Use repo tools (Read, Write, Edit, Bash, Grep, Glob) to implement changes
-- For large scope: create Linear sub-issues via `mcp__claude_ai_Linear__save_issue` with `parentId` set to current issue, `team` from config, and appropriate persona labels
+- For large scope: decompose into GitHub sub-issues —
+  1. Create each: `gh issue create --repo <owner/name> --title "..." --body "..." --label <persona-label>`
+  2. Attach to the parent: `gh api repos/<owner>/<name>/issues/<parent>/sub_issues -f sub_issue_id=<id>` (the sub-issue's **ID**, from `gh api repos/<owner>/<name>/issues/<number> --jq .id`)
 - For small scope: work directly, use internal tasks to track progress
 - Commit changes with descriptive conventional commit messages
 - Respect `max_turns` from persona config as a work budget
 
-**If Linear MCP becomes unavailable mid-work:** Stop immediately. Leave `agent-working` label in place (will be cleaned as stale on next heartbeat). Delete lockfile and exit with error log.
+**If `gh` auth expires or GitHub API errors persist mid-work:** Stop immediately. Leave `agent-working` label in place (will be cleaned as stale on next heartbeat). Delete lockfile and exit with error log.
 
 ## Step 9: Report
 
-Post a structured comment on the Linear issue via `mcp__claude_ai_Linear__save_comment`.
+Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner/name> --body "..."`.
 
 Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md`:
 - Include `Heartbeat #N` counter (incremented from step 7)
 - Include timestamp and duration
 - Include persona name in footer
 - List commits with SHAs, sub-issues created, and next steps
-- For blocked status: name who needs to act (Board user from config `linear.user_name`)
+- For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
 
 Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
 ```json
-{"heartbeat": N, "timestamp": "ISO", "issue": "WOT-XX", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked", "actions": ["description"]}
+{"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked", "actions": ["description"]}
 ```
 
 ## Step 10: Update State
 
-Read the issue's current labels via `mcp__claude_ai_Linear__get_issue`, then update based on outcome:
+Read the issue's current labels (`gh issue view N --json labels`), then update based on outcome:
 
-| Outcome | Labels | Status |
+| Outcome | Labels | State |
 |---------|--------|--------|
-| **Completed** | Remove `agent-working` | Move to Done (or In Review if PR opened) |
-| **Blocked** | Remove `agent-working`, add `agent-blocked` | Keep In Progress |
-| **More work needed** | Keep `agent-working` | Keep In Progress |
+| **Completed** | Remove `agent-working` | Close the issue (`gh issue close N --comment "..."`) — or swap to `in-review` label if a PR was opened |
+| **Blocked** | Remove `agent-working`, add `agent-blocked` | Stays open |
+| **More work needed** | Keep `agent-working`, ensure `in-progress` | Stays open |
 
-For blocked issues: include the Board user's display name in the comment text (e.g., "**@Alex Kim** — please review").
+For blocked issues: @-mention the Board user's GitHub login in the comment text (e.g., "**@alexk1919** — please review") — a real mention that notifies them.
 
 ## Step 11: Next Issue or Exit
 

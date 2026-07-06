@@ -5,7 +5,7 @@ is_default: true
 escalates_to: ceo
 
 required_tools:
-  - mcp__claude_ai_Linear          # Prefix match – covers all Linear MCP tools
+  - gh                             # GitHub CLI – verified via `gh auth status`
 
 runtime:
   model: haiku                     # Routing is mechanical – cheapest model works

@@ -20,10 +20,10 @@ Ask the user for:
 
 1. **Name** — Display name (e.g., "QA Engineer", "Infra Engineer", "Research Analyst")
 2. **Role** — Role type: `engineer`, `orchestrator`, `analyst`, or custom
-3. **Label** — Linear label for routing issues to this persona (e.g., `qa`, `infra`, `research`). Must be unique across existing personas.
+3. **Label** — GitHub label for routing issues to this persona (e.g., `qa`, `infra`, `research`). Must be unique across existing personas.
 4. **Escalates to** — Which persona to escalate to (default: `ceo`)
 5. **Model** — Runtime model: `opus`, `sonnet`, or `haiku` (suggest based on role complexity)
-6. **Required tools** — Beyond `mcp__claude_ai_Linear`, which tool prefixes does this persona need? (e.g., `mcp__neon`, `mcp__plugin_playwright_playwright`)
+6. **Required tools** — Beyond `gh`, which tools does this persona need? (e.g., `mcp__neon`, `mcp__plugin_playwright_playwright`)
 
 ### Step 2: Generate SOUL.md
 
@@ -56,7 +56,7 @@ label: <label>
 escalates_to: <escalates_to>
 
 required_tools:
-  - mcp__claude_ai_Linear
+  - gh
   # additional tools from step 1
 
 runtime:
@@ -83,9 +83,9 @@ Read `.woterclip/config.yaml` and add the new persona to the `personas` map:
   label: "<label>"
 ```
 
-### Step 7: Create Linear Label
+### Step 7: Create GitHub Label
 
-Call `mcp__claude_ai_Linear__list_issue_labels` to check if the label exists. If not, create it under the WoterClip group via `mcp__claude_ai_Linear__create_issue_label`.
+Check whether the label exists with `gh label list --repo <owner/name from config github.repo> --limit 200`. If not, create it: `gh label create <label> --repo <owner/name> --color <hex> --description "WoterClip persona label"`.
 
 ### Step 8: Summary
 
@@ -101,7 +101,7 @@ Files:
   ✓ TOOLS.md
   ✓ config.yaml
 
-Linear label "<label>" created under WoterClip group.
+GitHub label "<label>" created on <owner/name>.
 
 Customize SOUL.md to match your project's specific needs.
 ```

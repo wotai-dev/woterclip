@@ -2,17 +2,17 @@
 
 ## Required
 
-- **Linear MCP** (`mcp__claude_ai_Linear__*`): Read issues, post comments, update status.
+- **`gh` CLI** (via Bash): Read issues, post comments, update labels/state. Verify with `gh auth status`.
 - **Repo tools** (Read, Write, Edit, Bash, Grep, Glob): Full codebase access for implementation.
 
 ## Common Patterns
 
 ### Implement a feature
-1. Read the issue and existing code
+1. Read the issue and existing code (`gh issue view N --json title,body,comments`)
 2. Create or modify files (Edit/Write)
 3. Run tests (Bash)
 4. Commit changes (Bash — git)
-5. Post heartbeat comment with commit SHAs (Linear MCP)
+5. Post heartbeat comment with commit SHAs (`gh issue comment N --body "..."`)
 
 ### Fix a bug
 1. Read the issue for reproduction steps
