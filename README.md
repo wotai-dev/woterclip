@@ -2,6 +2,8 @@
 
 GitHub Issues-backed agent orchestration for Claude Code. A single Claude instance wears different "hats" (personas) based on GitHub issue labels – an Orchestrator routes work, a CEO makes strategic calls, and worker personas execute.
 
+**Get the persona starter pack →** https://alexk1919.gumroad.com/l/woterclip-persona-pack
+
 ## How It Works
 
 ```
@@ -178,4 +180,4 @@ See [`docs/specs/2026-03-25-woterclip-design.md`](docs/specs/2026-03-25-wotercli
 
 ## License
 
-MIT
+[MIT](LICENSE)
