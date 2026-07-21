@@ -18,7 +18,7 @@
 1. Read the issue for reproduction steps
 2. Find relevant code (Grep/Glob)
 3. Fix and add regression test
-4. Commit and comment
+4. Commit, then summarize the fix for your returned outcome — commit SHA, what's next
 
 ### Database work
 - Use Neon MCP (`mcp__neon__*`) if available for database operations

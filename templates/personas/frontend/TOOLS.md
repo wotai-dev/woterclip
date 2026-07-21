@@ -18,7 +18,7 @@
 1. Read the issue for reproduction steps
 2. Find the relevant component (Grep/Glob)
 3. Fix and test interactive states
-4. Commit and comment
+4. Commit, then summarize the fix for your returned outcome — commit SHA, what's next
 
 ### Styling work
 - Use the project's design system tokens (colors, spacing, typography)
