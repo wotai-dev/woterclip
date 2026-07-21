@@ -1,6 +1,6 @@
 {
   "name": "woterclip",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "GitHub Issues-backed agent orchestration with persona-based task routing for Claude Code",
   "author": {
     "name": "Alex Kim"
