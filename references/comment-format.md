@@ -7,7 +7,7 @@ All heartbeat comments follow a structured template posted via `gh issue comment
 ```markdown
 ## Heartbeat #N — YYYY-MM-DD HH:MM UTC (duration)
 
-**Status:** In Progress | Completed | Blocked
+**Status:** In Progress | Completed | Blocked | Triaged | Decomposed
 **Model:** opus
 
 <!-- Fallback form, used when dispatch was unavailable or the model override was
