@@ -33,7 +33,7 @@ The heartbeat is a **skill** (`skills/heartbeat/SKILL.md`), not code. Claude fol
 Each persona = directory with 3 files:
 - `SOUL.md` — identity injected into Claude's context (shapes behavior)
 - `TOOLS.md` — available tools and usage patterns (shapes capabilities)
-- `config.yaml` — machine-readable runtime config (model, thinking effort, max turns, required tools)
+- `config.yaml` — machine-readable runtime config (model — enforced via the heartbeat's Do Work subagent dispatch; thinking effort, max turns, required tools)
 
 Routing: GitHub issue label → `personas` map in config.yaml → persona directory.
 
