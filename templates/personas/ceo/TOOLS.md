@@ -19,12 +19,11 @@ All commands target the repo from config `github.repo` — pass `--repo <owner/n
 1. `gh issue view <parent> --repo <owner/name> --json title,body,labels` – read the parent issue
 2. `gh api repos/<owner>/<name>/issues/<parent>/sub_issues` – check existing sub-issues
 3. Create/attach sub-issues with correct sequencing and labels per `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + `Parent: #N` body reference; attach by issue **ID** with `-F sub_issue_id=`; verify the attach)
-4. `gh issue comment <parent> --repo <owner/name> --body "..."` – post the approved breakdown
+4. Summarize the approved breakdown for your returned outcome — the heartbeat loop's report lists the sub-issues
 
 ### Communicate with the Board
 
-1. `gh issue comment N --repo <owner/name> --body "..."` – post a status summary or recommendation
-2. @-mention the Board user (`github.board_user`) for visibility (note: GitHub does not notify self-mentions — if the Board user is the same account gh is authenticated as, they must watch the repo instead)
+Return status summaries and recommendations in your outcome's work summary — the heartbeat loop posts the report. For blockers needing Board action, return a blocked outcome naming the action needed from the Board user (`github.board_user`); the loop posts the blocked comment and @-mention. (Decision-rationale comments on the issue itself remain your work product.)
 
 ### Coordinate cross-cutting work
 

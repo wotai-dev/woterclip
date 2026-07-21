@@ -17,6 +17,7 @@ Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve t
 - `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` — Label lifecycle and atomic label operations
 - `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
 - `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` — Canonical create/attach/verify procedure for sub-issues
+- `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — Subagent dispatch, outcome contract, and fallback rules
 
 All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
@@ -72,11 +73,11 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
    - `TOOLS.md` → inject into context as tool guidance
    - `config.yaml` → read runtime settings
 
-Apply runtime config from persona's `config.yaml`:
-- `model` — note the target model (informational; cannot switch mid-session)
-- `thinking_effort` — apply if supported
-- `max_turns` — respect as work budget
-- `enable_chrome` — note for browser-dependent tasks
+Apply runtime config from persona's `config.yaml` — these feed the step 8 dispatch:
+- `model` — the model the persona subagent is dispatched on (dispatch parameter)
+- `thinking_effort` — passed as an effort directive in the dispatch prompt
+- `max_turns` — passed as a turn-budget directive in the dispatch prompt
+- `enable_chrome` — when true, noted in the dispatch prompt (browser-dependent work)
 
 ## Step 5: Validate Tools
 
@@ -108,7 +109,13 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 
 ## Step 8: Do Work
 
-Follow the persona's SOUL.md instructions. This step varies by persona:
+Dispatch the work to a persona subagent per `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — prompt composition, the model parameter, fallback, error handling, and the outcome contract are all defined there. The branch shape:
+
+1. Dispatch on the persona's `model`; the subagent returns a structured outcome that steps 9–10 consume.
+2. Refused at invocation — no subagent primitive, or override rejected before execution began → work inline on the session model; record the fallback for the step 9 report (never block the issue for this reason alone).
+3. Failure after execution may have begun, or unparseable outcome → treat as a **blocked** outcome (step 10 blocked path); when indeterminate, prefer blocked — re-running inline could duplicate work.
+
+The work itself — wherever it runs — follows the persona's SOUL.md instructions and varies by persona:
 
 **Orchestrator persona:** Triage the issue – apply persona labels, create sub-issues, or escalate. Never write code.
 
@@ -116,7 +123,7 @@ Follow the persona's SOUL.md instructions. This step varies by persona:
 
 **Worker personas (backend, frontend, etc.):**
 - Use repo tools (Read, Write, Edit, Bash, Grep, Glob) to implement changes
-- For large scope: decompose into GitHub sub-issues following `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + persona label + `Parent: #N` body reference, attach by issue ID with `-F sub_issue_id=`, verify the attach, summarize on the parent)
+- For large scope: decompose into GitHub sub-issues following `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + persona label + `Parent: #N` body reference, attach by issue ID with `-F sub_issue_id=`, verify the attach, summarize in your returned outcome)
 - For small scope: work directly, use internal tasks to track progress
 - Commit changes with descriptive conventional commit messages
 - Respect `max_turns` from persona config as a work budget
@@ -125,18 +132,21 @@ Follow the persona's SOUL.md instructions. This step varies by persona:
 
 ## Step 9: Report
 
+Before posting, confirm the lockfile still exists and the issue still carries `agent-working` — if a later heartbeat cleaned them as stale, log locally and exit without writing. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
+
 Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner/name> --body "..."`.
 
 Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md`:
 - Include `Heartbeat #N` counter (incremented from step 7)
 - Include timestamp and duration
+- Include the `**Model:**` line naming the model that performed the work — the loop's dispatch parameter (session model on fallback, naming both configured and actual); the subagent's self-reported model is advisory only
 - Include persona name in footer
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
 
 Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
 ```json
-{"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked", "actions": ["description"]}
+{"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
 ```
 
 ## Step 10: Update State
@@ -148,6 +158,8 @@ Read the issue's current labels (`gh issue view N --json labels`), then update b
 | **Completed** | `gh issue edit N --remove-label agent-working --remove-label in-progress` (labels first — `gh issue close` does not touch labels, and stale-label cleanup only scans open issues), then `gh issue close N --comment "..."` — or, if a PR was opened, swap to review instead: `gh issue edit N --remove-label agent-working --remove-label in-progress --add-label in-review` (issue stays open) |
 | **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
 | **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
+| **Triaged** (Orchestrator applied a persona label as work product) | `gh issue edit N --remove-label agent-working` (stays open, unclaimed — the routed persona picks it up on a later heartbeat) |
+| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working --remove-label in-progress` (parent stays open, todo-tier below its children; sub-issues carry the work) |
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 

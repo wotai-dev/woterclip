@@ -71,9 +71,9 @@ Each `/heartbeat` runs an 11-step cycle:
 5. **Validate tools** – check required tools are available (`gh auth status`)
 6. **Lock issue** – add `agent-working` label
 7. **Understand context** – read issue, comments, parent, heartbeat counter
-8. **Do work** – follow persona instructions (CEO triages, workers implement)
+8. **Do work** – dispatch a persona subagent on the persona's configured model (inline fallback, disclosed in the report, when dispatch is unavailable)
 9. **Report** – post structured comment with progress, commits, sub-issues
-10. **Update state** – manage labels based on outcome (done/blocked/continuing)
+10. **Update state** – manage labels based on the returned outcome (completed / in progress / blocked / triaged / decomposed)
 11. **Next or exit** – pick another issue or clean up and stop
 
 Use `--dry-run` to see what would be picked without doing work. Use `--persona backend` to force a specific persona.

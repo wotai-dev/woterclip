@@ -26,7 +26,7 @@ Report whether a recurring heartbeat is active. Check if `/schedule` is running 
 Read the last line of `.woterclip/heartbeat-log.jsonl` (if it exists). Report:
 - Heartbeat number, timestamp, and how long ago it ran
 - Which persona and issue were involved
-- Outcome (completed, in progress, blocked)
+- Outcome (completed, in progress, blocked, triaged, decomposed)
 
 If no log file exists, report "No heartbeat history found."
 
@@ -42,7 +42,8 @@ Filter and categorize:
 - `✓` Completed issues
 - `→` In Progress issues
 - `✗` Blocked issues
-- `+` Newly created sub-issues
+- `↪` Triaged issues (Orchestrator routed to a persona; unclaimed until that persona's heartbeat)
+- `+` Newly created sub-issues (decomposed parents show these as children)
 
 **Queue** (next heartbeat would pick these up):
 - Open issues with persona labels, not labeled `backlog` or `in-review`, sorted `in-progress` first then by `priority:*` label
@@ -63,6 +64,8 @@ Since last heartbeat:
   ✓ #12  [persona]   Completed    "Title"
   → #13  [persona]   In Progress  "Title"
   ✗ #14  [persona]   Blocked      "Title"
+  ↪ #16  [ceo]       Triaged      "Title"
+  + #17  [persona]   Sub-issue    "Title" (parent #12)
 
 Queue (next heartbeat):
   #15  [persona]  Status  Priority  "Title"

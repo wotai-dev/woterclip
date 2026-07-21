@@ -34,7 +34,7 @@ For each sub-issue:
 
 4. **Verify the attach succeeded** (non-zero exit or error body = failure). On failure, do not retry blindly — post a comment on the parent naming the sub-issues that were created but not attached (`Created but unattached: #X, #Y`) so the Board can attach them manually. The body's `Parent: #N` reference keeps the relationship discoverable either way.
 
-5. **Post a decomposition summary comment on the parent** listing every created sub-issue (`#N — description (persona)`), per `comment-format.md`.
+5. **Report the decomposition in your returned outcome** — every created sub-issue (`#N — description (persona)`); the heartbeat loop's report comment lists them. Only when operating outside a dispatched heartbeat (e.g., the standalone orchestrator agent), post the same summary as a parent comment instead — never in the Heartbeat format.
 
 ## Priority
 

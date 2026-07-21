@@ -11,7 +11,7 @@ directly on the repo. Keep the names below verbatim so they match config default
 
 | Label | Purpose | Applied by | Removed by |
 |-------|---------|------------|------------|
-| `agent-working` | Agent is actively working this issue | Heartbeat (step 6) | Heartbeat (step 10) on done/blocked |
+| `agent-working` | Agent is actively working this issue | Heartbeat (step 6) | Heartbeat (step 10) on done/blocked/triaged/decomposed |
 | `agent-blocked` | Agent is blocked, needs Board attention | Heartbeat (step 10) | Board (manually) or heartbeat when new context appears |
 
 ### State Label Rules

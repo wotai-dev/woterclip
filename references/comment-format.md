@@ -7,7 +7,12 @@ All heartbeat comments follow a structured template posted via `gh issue comment
 ```markdown
 ## Heartbeat #N — YYYY-MM-DD HH:MM UTC (duration)
 
-**Status:** In Progress | Completed | Blocked
+**Status:** In Progress | Completed | Blocked | Triaged | Decomposed
+**Model:** opus
+
+<!-- Fallback form, used when dispatch was unavailable or the model override was
+     rejected and the loop did the work inline on the session model:
+     **Model:** sonnet (fallback — configured: opus) -->
 
 ### What was done
 - [`a1b2c3d`](link) feat(api): commit message
@@ -32,6 +37,7 @@ None
 ## Heartbeat #N — YYYY-MM-DD HH:MM UTC (duration)
 
 **Status:** Blocked
+**Model:** opus
 
 ### Blocker
 Clear description of what is blocking progress.
@@ -59,6 +65,8 @@ Clear description of what is blocking progress.
 - Use `⚠️` flag for uncertain work that needs manual verification
 - Fast-path triage comments: `**Triage:** → backend` for obvious routing
 - Issue references are bare `#N` — GitHub auto-links them within the same repo
+- The `**Model:**` line is informational for readers, not part of heartbeat-counter
+  derivation
 
 ## Heartbeat Counter
 

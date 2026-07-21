@@ -17,12 +17,11 @@ All commands target the repo from config `github.repo` — pass `--repo <owner/n
 
 ### Decompose into sub-issues
 
-Follow `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (canonical create/attach/verify procedure): create each child with `--assignee @me`, persona label, and `Parent: #N` body reference; attach by issue **ID** with `-F sub_issue_id=`; verify the attach; summarize the decomposition on the parent.
+Follow `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (canonical create/attach/verify procedure): create each child with `--assignee @me`, persona label, and `Parent: #N` body reference; attach by issue **ID** with `-F sub_issue_id=`; verify the attach; summarize the decomposition in your returned outcome.
 
 ### Escalate to Board
 
-1. `gh issue comment N --repo <owner/name> --body "..."` – describe blocker, @-mention Board user (`github.board_user`)
-2. `gh issue edit N --repo <owner/name> --add-label agent-blocked` – apply the blocked label
+Return a blocked outcome naming the blocker and the action needed from the Board user (`github.board_user`) — the heartbeat loop posts the blocked comment and applies the `agent-blocked` label.
 
 ## Not Used
 
