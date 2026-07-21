@@ -23,7 +23,7 @@ carried by **status labels** (`backlog`, `todo`, `in-progress`, `in-review`).
 | **Work in progress** | Stays open, ensure `in-progress` label | Keep `agent-working` |
 | **Blocked** | Stays open | Remove `agent-working`, add `agent-blocked` |
 | **Triaged by Orchestrator** | Stays open | Add persona label, remove `agent-working` |
-| **Decomposed** | Parent stays open with `in-progress`, sub-issues created open | Add persona labels to sub-issues, remove `agent-working` from parent |
+| **Decomposed** | Parent stays open (todo-tier, below its children in pick order), sub-issues created open | Add persona labels to sub-issues, remove `agent-working` from parent |
 
 ## Inbox Query
 

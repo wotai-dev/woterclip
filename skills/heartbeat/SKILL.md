@@ -77,7 +77,7 @@ Apply runtime config from persona's `config.yaml` — these feed the step 8 disp
 - `model` — the model the persona subagent is dispatched on (dispatch parameter)
 - `thinking_effort` — passed as an effort directive in the dispatch prompt
 - `max_turns` — passed as a turn-budget directive in the dispatch prompt
-- `enable_chrome` — note for browser-dependent tasks (stays loop-side)
+- `enable_chrome` — when true, noted in the dispatch prompt (browser-dependent work)
 
 ## Step 5: Validate Tools
 
@@ -112,8 +112,8 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 Dispatch the work to a persona subagent per `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — prompt composition, the model parameter, fallback, error handling, and the outcome contract are all defined there. The branch shape:
 
 1. Dispatch on the persona's `model`; the subagent returns a structured outcome that steps 9–10 consume.
-2. Dispatch unavailable or override rejected → work inline on the session model; record the fallback for the step 9 report (never block the issue for this reason alone).
-3. Dispatch error or unparseable outcome → treat as a **blocked** outcome (step 10 blocked path).
+2. Refused at invocation — no subagent primitive, or override rejected before execution began → work inline on the session model; record the fallback for the step 9 report (never block the issue for this reason alone).
+3. Failure after execution may have begun, or unparseable outcome → treat as a **blocked** outcome (step 10 blocked path); when indeterminate, prefer blocked — re-running inline could duplicate work.
 
 The work itself — wherever it runs — follows the persona's SOUL.md instructions and varies by persona:
 
@@ -132,12 +132,14 @@ The work itself — wherever it runs — follows the persona's SOUL.md instructi
 
 ## Step 9: Report
 
+Before posting, confirm the lockfile still exists and the issue still carries `agent-working` — if a later heartbeat cleaned them as stale, log locally and exit without writing. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
+
 Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner/name> --body "..."`.
 
 Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md`:
 - Include `Heartbeat #N` counter (incremented from step 7)
 - Include timestamp and duration
-- Include the `**Model:**` line naming the model that performed the work — on fallback, both configured and actual (see the fallback form in the comment-format reference)
+- Include the `**Model:**` line naming the model that performed the work — the loop's dispatch parameter (session model on fallback, naming both configured and actual); the subagent's self-reported model is advisory only
 - Include persona name in footer
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
@@ -157,7 +159,7 @@ Read the issue's current labels (`gh issue view N --json labels`), then update b
 | **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
 | **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
 | **Triaged** (Orchestrator applied a persona label as work product) | `gh issue edit N --remove-label agent-working` (stays open, unclaimed — the routed persona picks it up on a later heartbeat) |
-| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working --add-label in-progress` (parent stays open; sub-issues carry the work) |
+| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working` (parent stays open, todo-tier below its children; sub-issues carry the work) |
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 
