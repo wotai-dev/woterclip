@@ -12,7 +12,7 @@
 2. Check existing components for patterns (Glob/Grep)
 3. Create or modify component files (Write/Edit)
 4. Run dev server and verify (Bash)
-5. Commit and post heartbeat comment (Bash + `gh issue comment N --repo <owner/name>`)
+5. Commit (Bash — git), then summarize the work for your returned outcome — commit SHAs, what's next; the heartbeat loop posts the report comment
 
 ### Fix a UI bug
 1. Read the issue for reproduction steps

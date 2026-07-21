@@ -12,7 +12,7 @@
 2. Create or modify files (Edit/Write)
 3. Run tests (Bash)
 4. Commit changes (Bash — git)
-5. Post heartbeat comment with commit SHAs (`gh issue comment N --repo <owner/name> --body "..."`)
+5. Summarize the work for your returned outcome — commit SHAs, PR URLs, what's next; the heartbeat loop posts the report comment
 
 ### Fix a bug
 1. Read the issue for reproduction steps
