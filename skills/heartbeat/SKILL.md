@@ -109,12 +109,11 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 
 ## Step 8: Do Work
 
-Dispatch the work to a persona subagent per `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md`:
+Dispatch the work to a persona subagent per `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — prompt composition, the model parameter, fallback, error handling, and the outcome contract are all defined there. The branch shape:
 
-1. Attempt a subagent dispatch on the persona's `model`, composing the prompt from the state-ownership preamble, SOUL.md, TOOLS.md, the step 7 issue context, and the effort/turn directives.
-2. Dispatch unavailable or model override rejected → do the work inline in this session on the session model; record the fallback (configured vs actual model) for the step 9 report. Never block the issue for this reason alone.
-3. Dispatch fails, or the returned outcome has no parseable status → treat as a **blocked** outcome with the raw return as failure detail (step 10 blocked path).
-4. Otherwise the subagent returns the structured outcome (status, work summary, commits/PRs, sub-issues, blocker or escalation detail, model used) that steps 9–10 consume.
+1. Dispatch on the persona's `model`; the subagent returns a structured outcome that steps 9–10 consume.
+2. Dispatch unavailable or override rejected → work inline on the session model; record the fallback for the step 9 report (never block the issue for this reason alone).
+3. Dispatch error or unparseable outcome → treat as a **blocked** outcome (step 10 blocked path).
 
 The work itself — wherever it runs — follows the persona's SOUL.md instructions and varies by persona:
 

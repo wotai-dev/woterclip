@@ -24,16 +24,16 @@ Compose the dispatch prompt in this order:
 1. The state-ownership preamble above.
 2. The persona's `SOUL.md`, verbatim.
 3. The persona's `TOOLS.md`, verbatim.
-4. The issue context gathered in Step 7 (title, body, comments, parent context, new comments since the last heartbeat).
+4. The issue context gathered in Step 7 — title, body, the comment thread (marking which comments are new since the last heartbeat), and parent context. Include the thread once; do not repeat new comments as a separate block.
 5. An effort directive from `thinking_effort` (e.g., "Apply high thinking effort") and a turn-budget directive from `max_turns` (e.g., "Budget roughly 300 turns"). Both are guidance to the subagent, not hard enforcement.
 
 ## Model Parameter
 
 Set the dispatch's model parameter from the persona's `runtime.model` (`haiku`, `sonnet`, or `opus`).
 
-## Availability Check and Inline Fallback
+## Inline Fallback
 
-Check availability per dispatch call, not once per heartbeat run — a specific model can be rejected while others work. If the harness has no subagent primitive, or it rejects the model override for this call:
+Attempt the dispatch directly — do not probe harness capabilities first. Judge availability per dispatch call, not once per heartbeat run: a specific model can be rejected while others work. If the attempt fails because the harness has no subagent primitive or it rejects the model override for this call:
 
 1. Do the work inline in the loop session, on the session model, following the same persona files and Step 8 work guidance.
 2. Record for the Step 9 report that fallback occurred, naming both the configured model and the actual model.
