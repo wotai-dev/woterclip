@@ -17,6 +17,7 @@ Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve t
 - `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` — Label lifecycle and atomic label operations
 - `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
 - `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` — Canonical create/attach/verify procedure for sub-issues
+- `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — Subagent dispatch, outcome contract, and fallback rules
 
 All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
@@ -72,11 +73,11 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
    - `TOOLS.md` → inject into context as tool guidance
    - `config.yaml` → read runtime settings
 
-Apply runtime config from persona's `config.yaml`:
-- `model` — note the target model (informational; cannot switch mid-session)
-- `thinking_effort` — apply if supported
-- `max_turns` — respect as work budget
-- `enable_chrome` — note for browser-dependent tasks
+Apply runtime config from persona's `config.yaml` — these feed the step 8 dispatch:
+- `model` — the model the persona subagent is dispatched on (dispatch parameter)
+- `thinking_effort` — passed as an effort directive in the dispatch prompt
+- `max_turns` — passed as a turn-budget directive in the dispatch prompt
+- `enable_chrome` — note for browser-dependent tasks (stays loop-side)
 
 ## Step 5: Validate Tools
 
@@ -108,7 +109,14 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 
 ## Step 8: Do Work
 
-Follow the persona's SOUL.md instructions. This step varies by persona:
+Dispatch the work to a persona subagent per `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md`:
+
+1. Attempt a subagent dispatch on the persona's `model`, composing the prompt from the state-ownership preamble, SOUL.md, TOOLS.md, the step 7 issue context, and the effort/turn directives.
+2. Dispatch unavailable or model override rejected → do the work inline in this session on the session model; record the fallback (configured vs actual model) for the step 9 report. Never block the issue for this reason alone.
+3. Dispatch fails, or the returned outcome has no parseable status → treat as a **blocked** outcome with the raw return as failure detail (step 10 blocked path).
+4. Otherwise the subagent returns the structured outcome (status, work summary, commits/PRs, sub-issues, blocker or escalation detail, model used) that steps 9–10 consume.
+
+The work itself — wherever it runs — follows the persona's SOUL.md instructions and varies by persona:
 
 **Orchestrator persona:** Triage the issue – apply persona labels, create sub-issues, or escalate. Never write code.
 
@@ -130,13 +138,14 @@ Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner
 Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md`:
 - Include `Heartbeat #N` counter (incremented from step 7)
 - Include timestamp and duration
+- Include the `**Model:**` line naming the model that performed the work — on fallback, both configured and actual (see the fallback form in the comment-format reference)
 - Include persona name in footer
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
 
 Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
 ```json
-{"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked", "actions": ["description"]}
+{"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
 ```
 
 ## Step 10: Update State
@@ -148,6 +157,8 @@ Read the issue's current labels (`gh issue view N --json labels`), then update b
 | **Completed** | `gh issue edit N --remove-label agent-working --remove-label in-progress` (labels first — `gh issue close` does not touch labels, and stale-label cleanup only scans open issues), then `gh issue close N --comment "..."` — or, if a PR was opened, swap to review instead: `gh issue edit N --remove-label agent-working --remove-label in-progress --add-label in-review` (issue stays open) |
 | **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
 | **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
+| **Triaged** (Orchestrator applied a persona label as work product) | `gh issue edit N --remove-label agent-working` (stays open, unclaimed — the routed persona picks it up on a later heartbeat) |
+| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working --add-label in-progress` (parent stays open; sub-issues carry the work) |
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 
