@@ -64,6 +64,8 @@ Since last heartbeat:
   ✓ #12  [persona]   Completed    "Title"
   → #13  [persona]   In Progress  "Title"
   ✗ #14  [persona]   Blocked      "Title"
+  ↪ #16  [ceo]       Triaged      "Title"
+  + #17  [persona]   Sub-issue    "Title" (parent #12)
 
 Queue (next heartbeat):
   #15  [persona]  Status  Priority  "Title"

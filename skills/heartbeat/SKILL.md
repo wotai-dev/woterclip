@@ -123,7 +123,7 @@ The work itself — wherever it runs — follows the persona's SOUL.md instructi
 
 **Worker personas (backend, frontend, etc.):**
 - Use repo tools (Read, Write, Edit, Bash, Grep, Glob) to implement changes
-- For large scope: decompose into GitHub sub-issues following `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + persona label + `Parent: #N` body reference, attach by issue ID with `-F sub_issue_id=`, verify the attach, summarize on the parent)
+- For large scope: decompose into GitHub sub-issues following `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` (create with `--assignee @me` + persona label + `Parent: #N` body reference, attach by issue ID with `-F sub_issue_id=`, verify the attach, summarize in your returned outcome)
 - For small scope: work directly, use internal tasks to track progress
 - Commit changes with descriptive conventional commit messages
 - Respect `max_turns` from persona config as a work budget
@@ -159,7 +159,7 @@ Read the issue's current labels (`gh issue view N --json labels`), then update b
 | **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
 | **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
 | **Triaged** (Orchestrator applied a persona label as work product) | `gh issue edit N --remove-label agent-working` (stays open, unclaimed — the routed persona picks it up on a later heartbeat) |
-| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working` (parent stays open, todo-tier below its children; sub-issues carry the work) |
+| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working --remove-label in-progress` (parent stays open, todo-tier below its children; sub-issues carry the work) |
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 
