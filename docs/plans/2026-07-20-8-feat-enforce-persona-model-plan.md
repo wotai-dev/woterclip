@@ -166,7 +166,7 @@ U1, U3, U4 are independent of each other and may land in any order; U2 depends o
 - **Approach:** Step 4: replace the "informational; cannot switch mid-session" line — runtime config now feeds the Step 8 dispatch (`model` → dispatch parameter; `thinking_effort`/`max_turns` → prompt directives). Step 8: open with the dispatch branch (attempt subagent per `references/persona-dispatch.md`; unavailable or rejected → do the work inline, note fallback; dispatch error or malformed outcome → treat as blocked outcome) and keep the existing persona-specific work guidance as the description of the work itself, wherever it runs. Step 9: report includes the model line per `references/comment-format.md`, and the heartbeat-log status enum widens to the five outcome statuses. Step 10: extend the outcome table with `triaged` and `decomposed` rows per `references/status-mapping.md:18-26`, including an explicit `agent-working` removal on the triage handoff. Add `persona-dispatch.md` to the Reference files block. Preserve untouched: step count (11), all six lockfile-delete paths (lines 31, 34, 64, 88, 124, 159 semantics), Step 8's existing mid-work `gh`-failure exit, and the semantics of Step 10's existing three rows.
 - **Execution note:** validate-first — before editing, record the current step-heading list and lockfile-path lines; after editing, re-run the same greps and diff.
 - **Patterns to follow:** existing inline if/then bullet idiom (`skills/heartbeat/SKILL.md:33-35`, `:88-94`) for the dispatch branch; reference-citation convention from lines 15–19.
-- **Test scenarios:** Covers AE1, AE2, AE3, AE4 (triaged row present). Grep `informational` in the file → zero hits. Grep for the old three-value log enum (`in_progress|completed|blocked` as the complete set) → zero hits. Step 10's table lists five outcomes. Step-heading count still 11 with unchanged titles. `wc -w` ≤ 2,000. All `${CLAUDE_PLUGIN_ROOT}` paths resolve. Frontmatter `name` + `description` intact.
+- **Test scenarios:** Covers AE1, AE2, AE3, AE4 (triaged row present). Grep `informational` in the file → zero hits. Grep for the old three-value log enum anchored with its closing quote (`in_progress|completed|blocked"`) → zero hits. Step 10's table lists five outcomes. Step-heading count still 11 with unchanged titles. `wc -w` ≤ 2,000. All `${CLAUDE_PLUGIN_ROOT}` paths resolve. Frontmatter `name` + `description` intact.
 - **Verification:** The validation checklist rows for frontmatter, reference resolution, and word budget pass; a read-through of Steps 8–11 finds every failure branch ending in a state Step 10/11 already handles.
 
 ### U3. Add the model line to references/comment-format.md
@@ -187,7 +187,7 @@ U1, U3, U4 are independent of each other and may land in any order; U2 depends o
 - **Requirements:** R3, R4, R9, KTD7.
 - **Dependencies:** none.
 - **Files:** `templates/personas/orchestrator/TOOLS.md`, `templates/personas/ceo/TOOLS.md`, `templates/personas/backend/TOOLS.md`, `templates/personas/frontend/TOOLS.md`.
-- **Approach:** Replace "post heartbeat comment" steps with "summarize for your outcome (commit SHAs, PRs, sub-issues)"; replace `gh issue edit N --add-label agent-blocked` escalation instructions with "return a blocked outcome naming the blocker and action needed". Keep work-product instructions: commits, PRs, triage persona-label edits, sub-issue creation. Preserve `{{USER_NAME}}`/`{{REPO}}` placeholders.
+- **Approach:** Replace "post heartbeat comment" steps with "summarize for your outcome (commit SHAs, PRs, sub-issues)"; replace `gh issue edit N --add-label agent-blocked` escalation instructions with "return a blocked outcome naming the blocker and action needed". In ceo/TOOLS.md, convert the breakdown-posting and Board status-summary steps to outcome-return language; decision-rationale comments and cross-issue coordination notes remain work product. Keep work-product instructions: commits, PRs, triage persona-label edits, sub-issue creation. Preserve `{{USER_NAME}}`/`{{REPO}}` placeholders.
 - **Execution note:** validate-first — write the grep invariants first (no `agent-blocked`/`agent-working` writes, no heartbeat-comment posting in any template), edit all four, run the greps.
 - **Patterns to follow:** each template's existing tone and section structure; `templates/personas/orchestrator/TOOLS.md` keeps its triage label-edit examples (work product).
 - **Test scenarios:** Covers AE4 (Orchestrator applies persona labels but returns triaged instead of commenting), AE5 (escalation as persona-label swap + in-progress outcome). Per file: zero instructions to post a `Heartbeat`-formatted comment; zero `--add-label agent-blocked`/`--remove-label agent-working` instructions; placeholders intact.
@@ -200,10 +200,10 @@ U1, U3, U4 are independent of each other and may land in any order; U2 depends o
 - **Dependencies:** U2.
 - **Files:** `README.md`, `CLAUDE.md`.
 - **Approach:** README line 74 (heartbeat step list): note that Do Work dispatches on the persona's model with inline fallback. CLAUDE.md line 36 (`config.yaml` description): note that `model` is enforced via Step 8 dispatch. Both one-line edits; the persona tables (README lines 89–98) are already accurate. `docs/specs/2026-03-25-woterclip-design.md` is historical (per CLAUDE.md's note) and stays untouched.
-- **Execution note:** validate-first — before editing, record the current Do Work line in README.md and the `config.yaml` description line in CLAUDE.md as the baseline; edit; then confirm both mention dispatch and run the repo-wide stale-wording grep (`informational; cannot switch`) expecting zero hits.
+- **Execution note:** validate-first — before editing, record the current Do Work line in README.md and the `config.yaml` description line in CLAUDE.md as the baseline; edit; then confirm both mention dispatch and run the stale-wording grep over shipped surfaces (outside `docs/`) for `informational; cannot switch`, expecting zero hits.
 - **Patterns to follow:** each file's existing terse line style.
 - **Test scenarios:** Test expectation: none — prose-only consistency edits; the greps below are the check.
-- **Verification:** Repo-wide grep for `informational; cannot switch` returns zero; README/CLAUDE.md mention dispatch where they describe Do Work / runtime config.
+- **Verification:** Grep over shipped surfaces (outside `docs/`) for `informational; cannot switch` returns zero; README/CLAUDE.md mention dispatch where they describe Do Work / runtime config.
 
 ---
 
@@ -216,9 +216,9 @@ U1, U3, U4 are independent of each other and may land in any order; U2 depends o
 | Word budget | `wc -w skills/heartbeat/SKILL.md` ≤ 2,000 | U2 |
 | Step stability | step-heading count is 11 with unchanged titles; lockfile-delete paths preserved | U2 |
 | State-write invariants | grep across `templates/personas/*/TOOLS.md`: no `agent-blocked`/`agent-working` edits, no heartbeat-comment posting | U4 |
-| Stale wording | repo-wide grep for `informational; cannot switch` → zero hits | U2, U5 |
+| Stale wording | grep shipped surfaces (everything outside `docs/`) for `informational; cannot switch` → zero hits | U2, U5 |
 | Local plugin load | `claude --plugin-dir <repo>` loads; heartbeat skill and references appear | all |
-| End-to-end (safety-critical) | scratch-repo `/woterclip-init` + `/heartbeat` run exercising: dispatch happy path (AE1), fallback disclosure (AE2), blocked outcome with lockfile deleted (AE3), Orchestrator triage without counter corruption (AE4) | U1–U4 |
+| End-to-end (safety-critical) | scratch-repo `/woterclip-init` + `/heartbeat` run exercising: dispatch happy path (AE1), fallback disclosure (AE2), blocked outcome with lockfile deleted (AE3), Orchestrator triage without counter corruption (AE4), and worker→CEO escalation (AE5: atomic label swap, in-progress outcome, no Board mention) | U1–U4 |
 
 No YAML gate: no `.yaml` file changes in scope.
 
