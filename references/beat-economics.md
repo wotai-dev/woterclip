@@ -4,23 +4,26 @@ Defines what a beat costs, what bounds it, and what it records. A **beat** is on
 execution cycle — the loop from picking up an issue through to exit, which may work several
 issues.
 
-Consumed by `skills/heartbeat/SKILL.md` (captures the clock, enforces the ceiling, writes the
-log), `skills/status/SKILL.md`, and `skills/heartbeat-log/SKILL.md` (both read the log).
+Consumed by `skills/heartbeat/SKILL.md` (captures the clocks, enforces the ceiling, writes the
+log), `skills/status/SKILL.md` and `skills/heartbeat-log/SKILL.md` (both read the log), and — for
+the Scheduling Preconditions section only — `skills/init/SKILL.md` and `README.md`.
 
 ## Clock Capture
 
-The beat captures a start timestamp as its **first action in Step 1**, before reading config:
+Two clocks, two scopes. Neither substitutes for the other.
 
-```bash
-BEAT_START=$(date -u +%s)
-```
+| Clock | Captured | Measures | Feeds |
+|-------|----------|----------|-------|
+| `BEAT_START` | Step 1, first action, before the config read | The whole beat | The ceiling, `beat_elapsed_sec` |
+| `ISSUE_START` | Step 7, before context gathering so it covers the dispatch | One issue | `duration_sec` |
 
-Elapsed seconds at any later point is `$(date -u +%s) - BEAT_START`. Anchoring at beat start
-rather than at lock acquisition keeps the measured window independent of step ordering.
+Elapsed is `$(date -u +%s) - <CLOCK>`. Anchoring `BEAT_START` at beat start rather than at lock
+acquisition keeps the measured window independent of step ordering.
 
-This capture is the only source of elapsed time. Before it existed, `duration_sec` appeared in
-the log schema but no step produced it — every value was absent, and any average over it was an
-average of nothing.
+Before these captures existed, `duration_sec` appeared in the log schema but no step produced it
+— every value was absent, and `heartbeat-log`'s average over it averaged nothing. A beat clock
+alone does not fix that: a beat working several issues cannot attribute its own elapsed time to
+any one of them, which is why `ISSUE_START` exists separately.
 
 ## Time Ceiling
 
@@ -79,6 +82,29 @@ so a beat that dies may take the loop with it, and nothing would report that it 
 **Treat a quiet repo as stopped after ~2 hours** of no beat with a non-empty queue, under either
 primitive. This is a reporting threshold for `/woterclip-status`, not an enforced timeout.
 
+## Exit Paths and Stop Reasons
+
+Every exit records a beat line before deleting the lockfile (the step 1 invariant). This table is
+that invariant's map — each exit in `skills/heartbeat/SKILL.md` and the reason it records.
+
+| Exit | Where | Stop reason | `issues_worked` |
+|------|-------|-------------|-----------------|
+| Live lockfile held by another beat | Step 1 | `lock_conflict` | 0 |
+| Quiet hours, `behavior: "skip"` | Step 1 | `quiet_hours` | 0 |
+| No eligible issues | Step 3 | `queue_empty` | 0 |
+| Required tool or `gh` unavailable | Step 5 | `blocked_exit` | count so far |
+| `gh` fails mid-work | Step 8 | `blocked_exit` | count so far |
+| Lock cleaned as stale before reporting | Step 9 | `blocked_exit` | count so far |
+| Ceiling reached, work remaining | Step 11 | `time_ceiling` | count |
+| Issue budget reached, work remaining | Step 11 | `issue_budget` | count |
+| Queue exhausted | Step 11 | `complete` | count |
+
+**`--dry-run` is the sole exception** — it reports what would be picked and exits without
+recording anything, because no beat occurred.
+
+`queue_empty` is the most common beat in a quiet repo and the cheapest to record. It is also the
+only evidence that a scheduled loop is alive and finding nothing, rather than stopped.
+
 ## Log Fields
 
 `.woterclip/heartbeat-log.jsonl` carries two line kinds, distinguished by `type`.
@@ -104,10 +130,13 @@ ambiguous, even when several issues were worked.
 
 - **A line with no `type` key is an issue line.** Every line written before this contract existed
   lacks `type`, so this rule makes old history readable without migration.
-- **Treat a missing field as unavailable, never as zero.** A pre-contract line has no
-  `duration_sec` value and no beat line accompanies it; render that as unavailable. Showing `0`
-  would misreport a beat that ran for minutes as free.
-- **A beat with no beat line is a pre-contract beat.** Report its cost as unavailable rather than
-  summing its issue lines — issue durations exclude the loop's own overhead.
+- **Treat a missing field as unavailable, never as zero. Render it as `—`.** Showing `0` would
+  misreport a beat that ran for minutes as free, and would drag any average toward zero. Every
+  reader uses this same token — do not substitute `n/a`, `null`, or a blank.
+- **Group backwards: a beat line closes the group above it.** Beat lines are appended last, so a
+  group is the run of issue lines up to and including the next beat line.
+- **A trailing run of issue lines with no following beat line is a pre-contract group.** Render
+  its cost and stop reason as `—`. Do not sum its issue durations to synthesize a beat cost —
+  issue durations exclude the loop's own overhead.
 - Beats that exit with `queue_empty`, `quiet_hours`, or `lock_conflict` perform no issue work and
   therefore write a beat line with `issues_worked: 0` and no issue lines.

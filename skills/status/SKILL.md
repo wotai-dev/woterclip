@@ -30,7 +30,7 @@ Report `Unknown` rather than `Not scheduled` whenever the listing is unavailable
 
 ### Step 3: Last Beat
 
-Read `.woterclip/heartbeat-log.jsonl` (if it exists). Line kinds and fields are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+Read the **tail** of `.woterclip/heartbeat-log.jsonl` (e.g. `tail -n 50`) and scan backwards for the most recent beat line and the most recent issue line — the log is append-only and never rotated, so do not read the whole file for this view. Line kinds, grouping, and fields are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
 
 From the last **beat line**, report:
 - When the beat ran and how long ago
@@ -40,6 +40,8 @@ From the last **beat line**, report:
 From the last **issue line**, report:
 - Heartbeat number, persona, and issue
 - Outcome (completed, in progress, blocked, triaged, decomposed)
+
+**If the last beat is older than ~2 hours and the queue is non-empty, report the loop as `Stopped`, not idle** — a scheduled loop that has gone quiet with work waiting has stopped, and nothing else surfaces that.
 
 **Absent fields render as `—`, never as `0`.** A line with no `type` key is an issue line from before beat lines existed; a beat with no beat line has an unavailable cost, not a zero one. Do not sum issue-line durations to synthesize a missing beat cost — issue durations exclude the loop's own overhead.
 
@@ -71,11 +73,13 @@ Filter and categorize:
 
 ### Step 5: Format Output
 
+`Schedule:` renders one of `Scheduled (<cadence>)`, `Not scheduled`, or `Unknown`. `Last beat:` renders `Stopped` in place of the elapsed figure when the ~2h threshold is met.
+
 ```
 WoterClip Status
 ────────────────
-Schedule:     Scheduled (every 30m) | Not scheduled | Unknown
-Last beat:    Heartbeat #N — X min ago — 14m 5s, 2 issues, stopped: time_ceiling
+Schedule:     Scheduled (every 30m)
+Last beat:    X min ago — 14m 5s, 2 issues, stopped: time_ceiling
 
 Since last heartbeat:
   ✓ #12  [persona]   Completed    "Title"

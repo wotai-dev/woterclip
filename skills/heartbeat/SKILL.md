@@ -18,6 +18,7 @@ Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve t
 - `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
 - `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` — Canonical create/attach/verify procedure for sub-issues
 - `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — Subagent dispatch, outcome contract, and fallback rules
+- `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md` — Clock capture, time ceiling, stop reasons, log fields
 
 All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
@@ -27,14 +28,14 @@ All `gh issue` / `gh api` calls below target the repo from config `github.repo` 
    ```bash
    BEAT_START=$(date -u +%s)
    ```
-   Elapsed seconds at any later point is `$(date -u +%s) - BEAT_START`. This is the only source of elapsed time — see `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+   Beat elapsed is `$(date -u +%s) - BEAT_START`. Step 7 captures a separate per-issue clock.
 2. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
 3. Check for lockfile at `.woterclip/.heartbeat-lock`.
    - If lockfile exists and is **less than** `stale_lock_hours` old → stop with message: "Previous heartbeat still active. Skipping."
    - If lockfile exists and is **older than** `stale_lock_hours` → delete it, log: "Cleaned stale lockfile."
    - If no lockfile → proceed.
 4. Create lockfile with current ISO timestamp.
-5. **On any exit path** (success, error, or early return), delete the lockfile.
+5. **On any exit path** (success, error, or early return), record a beat line (step 9) carrying that exit's stop reason — the exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md` — then delete the lockfile. `--dry-run` is the sole exception and records nothing.
 
 Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet window:
 - `behavior: "skip"` → delete lockfile and exit with message: "Quiet hours active. Skipping."
@@ -107,10 +108,11 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 
 ## Step 7: Understand Context
 
-1. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
-2. If the issue is a sub-issue, read its parent for broader context: follow the `Parent: #N` reference in the issue body (guaranteed by the sub-issue creation procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`), then `gh issue view <parent> --json title,body,comments`.
-3. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
-4. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
+1. Capture the per-issue clock before gathering context, so it covers the dispatch: `ISSUE_START=$(date -u +%s)`. This is separate from `BEAT_START` — it measures this issue, not the beat.
+2. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
+3. If the issue is a sub-issue, read its parent for broader context: follow the `Parent: #N` reference in the issue body (guaranteed by the sub-issue creation procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`), then `gh issue view <parent> --json title,body,comments`.
+4. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
+5. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
 
 ## Step 8: Do Work
 
@@ -149,7 +151,7 @@ Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
 
-Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue worked. `duration_sec` is seconds spent on this issue, not the beat's cost:
+Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue worked. `duration_sec` is `$(date -u +%s) - ISSUE_START` (step 7), seconds spent on this issue — not the beat's cost:
 ```json
 {"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
 ```
@@ -177,12 +179,11 @@ For blocked issues: @-mention the Board user's GitHub login in the comment text 
 
 ## Step 11: Next Issue or Exit
 
-Evaluate both bounds before taking another issue. Elapsed is `$(date -u +%s) - BEAT_START`; the ceiling and the stop-reason values are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+"Eligible issues remain" means the sorted inbox from step 2 minus issues worked this beat — do not re-query to answer these tests. The ceiling (1200s default) and stop reasons are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
 
-1. If elapsed ≥ the time ceiling and eligible issues remain → stop intake with stop reason `time_ceiling`. The issue just finished keeps its outcome and labels; only the next pick-up is declined. The ceiling is never evaluated mid-issue.
-2. Else if issues worked this heartbeat ≥ `max_issues_per_heartbeat` and eligible issues remain → stop intake with stop reason `issue_budget`.
-3. Else if eligible issues remain → return to **Step 2** to pick the next issue.
-4. Otherwise the queue is exhausted → stop reason `complete`.
-5. On any stop: record the beat line (step 9), delete the lockfile, and exit.
-6. If 0 todo issues remain in queue, suggest pausing the schedule.
-7. If 3+ issues are blocked, suggest Board attention rather than more heartbeats.
+1. Elapsed ≥ ceiling with issues remaining → stop intake, reason `time_ceiling`.
+2. Else issues worked ≥ `max_issues_per_heartbeat` with issues remaining → stop intake, reason `issue_budget`.
+3. Else issues remain → return to **Step 2** for the next issue.
+4. Else the queue is exhausted → reason `complete`.
+
+Before exiting, add to the report: suggest pausing the schedule if 0 todo issues remain, and suggest Board attention rather than more heartbeats if 3+ issues are blocked. Then exit per the step 1 invariant.

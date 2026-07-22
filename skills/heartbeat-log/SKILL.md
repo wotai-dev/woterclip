@@ -72,4 +72,4 @@ Support filtering when the user asks:
 
 - The log file is append-only and informational — safe to truncate if it grows too large
 - Heartbeat numbers are per-issue (derived from comments), not global sequence numbers
-- Duration is wall-clock time from heartbeat start to report posting
+- Field definitions — including what `duration_sec` and `beat_elapsed_sec` each measure — are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`
