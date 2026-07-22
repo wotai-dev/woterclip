@@ -10,10 +10,24 @@ Parse and summarize the WoterClip heartbeat log file (`.woterclip/heartbeat-log.
 
 ## Log Format
 
-Each line is a JSON object:
+Each line is a JSON object in one of two kinds, distinguished by `type`. Full field
+definitions live in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+
+**Issue line** — one per issue worked. A line with **no `type` key is an issue line**, which is
+what makes every pre-contract line readable without migration:
 ```json
 {"heartbeat": 7, "timestamp": "2026-03-25T10:15:00Z", "issue": "#79", "persona": "backend", "duration_sec": 720, "status": "in_progress", "actions": ["committed a1b2c3d", "created sub-issue #83"]}
 ```
+
+**Beat line** — one per beat, carrying the beat's cost and why it stopped:
+```json
+{"type": "beat", "started_at": "2026-03-25T10:03:00Z", "ended_at": "2026-03-25T10:17:05Z", "beat_elapsed_sec": 845, "issues_worked": 2, "stop_reason": "time_ceiling"}
+```
+
+**Treat a missing field as unavailable, never as zero.** Lines written before this contract
+carry no `duration_sec` value and have no accompanying beat line. Render those as `—`; counting
+them as `0` would report a beat that ran for minutes as free, and would drag any average toward
+zero.
 
 ## Procedure
 
@@ -37,9 +51,11 @@ Heartbeat History
 
 **Aggregate stats** (when asked for analytics or summary):
 
-- Total heartbeats
+- Total heartbeats, and total beats (count of beat lines)
 - Heartbeats per persona (breakdown)
-- Average duration per persona
+- Average duration per persona — **over issue lines that carry `duration_sec` only**, stating how many lines were excluded as unavailable
+- Total and average `beat_elapsed_sec` across beat lines
+- Stop-reason breakdown (how many beats hit `time_ceiling` vs `issue_budget` vs `complete`)
 - Completion rate (completed / total)
 - Most active issues (by heartbeat count)
 - Blocked issues and duration blocked

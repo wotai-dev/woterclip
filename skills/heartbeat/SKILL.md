@@ -149,9 +149,14 @@ Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.
 - List commits with SHAs, sub-issues created, and next steps
 - For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
 
-Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
+Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue worked. `duration_sec` is seconds spent on this issue, not the beat's cost:
 ```json
 {"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
+```
+
+At beat exit (step 11), append exactly one **beat line** — this is where beat cost lives. Field and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
+```json
+{"type": "beat", "started_at": "ISO", "ended_at": "ISO", "beat_elapsed_sec": N, "issues_worked": N, "stop_reason": "time_ceiling"}
 ```
 
 ## Step 10: Update State
