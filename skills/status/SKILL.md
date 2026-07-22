@@ -41,11 +41,11 @@ From the last **issue line**, report:
 - Heartbeat number, persona, and issue
 - Outcome (completed, in progress, blocked, triaged, decomposed)
 
-**If the last beat is older than ~2 hours and the queue is non-empty, report the loop as `Stopped`, not idle** — a scheduled loop that has gone quiet with work waiting has stopped, and nothing else surfaces that.
+The `Stopped` determination needs the queue, so it is made at the end of step 4 — see there.
 
-**Absent fields render as `—`, never as `0`.** A line with no `type` key is an issue line from before beat lines existed; a beat with no beat line has an unavailable cost, not a zero one. Do not sum issue-line durations to synthesize a missing beat cost — issue durations exclude the loop's own overhead.
+**Absent fields render as `—`, never as `0`.** A line with no `type` key is an issue line — old and new alike, since only beat lines carry `type`. A beat with no beat line has an unavailable cost, not a zero one. Do not sum issue-line durations to synthesize a missing beat cost — issue durations exclude the loop's own overhead.
 
-If no log file exists, report "No heartbeat history found."
+If the tail holds no beat line at all — an upgraded repo whose history predates them — widen the read once, then compute age from the most recent issue line's `timestamp` and render cost and stop reason as `—`. If no log file exists, report "No heartbeat history found."
 
 ### Step 4: Current Issues
 
@@ -70,6 +70,8 @@ Filter and categorize:
 - Issues with `agent-blocked` label
 - Show: issue number, Board user mention, blocker summary from last agent comment, and the **exit condition** — the `**Clears when:**` line from that comment's `### Action needed` section (see `${CLAUDE_PLUGIN_ROOT}/references/comment-format.md`)
 - If the comment carries no `**Clears when:**` line, show `Clears when: not stated` rather than repeating the blocker summary. Silently reusing the blocker text would make an unanswered question look answered
+
+**Stopped check.** If the last beat is older than ~2 hours and the queue above is non-empty, report the loop as `Stopped`, not idle — a scheduled loop gone quiet with work waiting has stopped, and nothing else surfaces that. If the queue query failed, render the elapsed time with `queue unknown` rather than guessing. Before starting a second schedule, check step 2's listing.
 
 ### Step 5: Format Output
 

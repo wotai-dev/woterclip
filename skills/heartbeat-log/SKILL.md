@@ -39,7 +39,7 @@ Parse each line as JSON. Handle malformed lines gracefully (skip with warning).
 
 ### Step 2: Summarize
 
-**Recent activity** (default: last 10 heartbeats):
+**Recent activity** (default: last 10 **issue lines** — beat lines are excluded from this view; see the aggregate stats below for beat-level figures):
 
 ```
 Heartbeat History
@@ -51,7 +51,7 @@ Heartbeat History
 
 **Aggregate stats** (when asked for analytics or summary):
 
-- Total heartbeats, and total beats (count of beat lines)
+- Total issue lines, and total beats (count of beat lines)
 - Heartbeats per persona (breakdown)
 - Average duration per persona — **over issue lines that carry `duration_sec` only**, stating how many lines were excluded as unavailable
 - Total and average `beat_elapsed_sec` across beat lines
@@ -65,7 +65,7 @@ Heartbeat History
 Support filtering when the user asks:
 - **By persona**: "show backend heartbeats" → filter by `persona` field
 - **By issue**: "show activity for #79" → filter by `issue` field
-- **By date range**: "show today's heartbeats" → filter by `timestamp`
+- **By date range**: "show today's heartbeats" → filter issue lines by `timestamp` and beat lines by `started_at`; beat lines carry no `timestamp`
 - **By status**: "show blocked heartbeats" → filter by `status`
 
 ## Notes
