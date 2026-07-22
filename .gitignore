@@ -1,4 +1,5 @@
 .claude/
+.worktrees/
 .env*.local
 *.bak
 
