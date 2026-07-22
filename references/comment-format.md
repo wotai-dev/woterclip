@@ -45,6 +45,8 @@ Clear description of what is blocking progress.
 ### Action needed
 @board-login — specific ask for what they need to do.
 
+**Clears when:** the observable condition that unblocks this issue.
+
 ### What was done before blocking
 - Work completed before hitting the blocker
 
@@ -61,6 +63,12 @@ Clear description of what is blocking progress.
   `github.board_user`). Caveat: GitHub does not notify a user of their own comments — when
   the Board user is the same account gh is authenticated as, the mention is visible but
   produces no notification (the Board should watch the repo or use `/woterclip-status`)
+- Blocked comments must carry a `**Clears when:**` line inside `### Action needed`, naming the
+  observable condition that unblocks the issue — not a restatement of the blocker and not only
+  who is being asked. "Clears when the Board grants repo access to the deploy key" is usable;
+  "Clears when the Board responds" is not. `/woterclip-status` renders this line as each blocked
+  item's exit condition, so a missing or vague one leaves the Board reading a queue that says
+  what is stuck without saying what would unstick it
 - Completion comments must list shipped commits/PRs with links
 - Use `⚠️` flag for uncertain work that needs manual verification
 - Fast-path triage comments: `**Triage:** → backend` for obvious routing
