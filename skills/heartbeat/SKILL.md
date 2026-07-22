@@ -37,7 +37,7 @@ All `gh issue` / `gh api` calls below target the repo from config `github.repo` 
    ```
    Carry the printed `beat_id` and `started_epoch` forward — they are the beat's identity and its clock.
 4. **Ownership rule, applied at every exit from here on.** Re-read `.woterclip/.heartbeat-lock`. Delete it **only if it still carries this beat's `beat_id`**; if it is missing or carries another id, a later beat cleaned and re-took it — leave it alone. Deleting a lock this beat does not own hands two beats the same repo.
-5. **Every exit from here on** records exactly one beat line (step 9) with that exit's stop reason, then applies the ownership rule. The exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`. Beat elapsed is `$(date -u +%s)` minus `started_epoch`.
+5. **Every exit from here on** records one beat line (step 9 format) naming that exit's stop reason, then applies the ownership rule. `--dry-run` records none — no beat's work was done. The exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`. Beat elapsed is `$(date -u +%s)` minus `started_epoch`.
 
 Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet window:
 - `behavior: "skip"` → record a `quiet_hours` beat line, apply the ownership rule, exit: "Quiet hours active. Skipping."
@@ -51,7 +51,7 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
      --json number,title,labels,createdAt --limit 100
    ```
 2. Filter and sort client-side per `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` § Filter Rules and § Sort Order (labels come from the JSON above).
-4. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (`gh issue edit N --remove-label agent-working`, post cleanup comment).
+3. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (`gh issue edit N --remove-label agent-working`, post cleanup comment).
 
 ## Step 3: Pick Issue
 
@@ -148,7 +148,7 @@ Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue w
 {"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
 ```
 
-At beat exit (step 11), append exactly one **beat line** — this is where beat cost lives. Field and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
+At **any** beat exit — step 3, 5, 8, 9, or 11 — append exactly one **beat line**. This is where beat cost lives. Field and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
 ```json
 {"type": "beat", "started_at": "ISO", "ended_at": "ISO", "beat_elapsed_sec": N, "issues_worked": N, "stop_reason": "time_ceiling"}
 ```

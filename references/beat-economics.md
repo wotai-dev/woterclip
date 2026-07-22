@@ -21,9 +21,10 @@ questions: *do I still own this lock?* (does `beat_id` still match) and *how lon
 (`$(date -u +%s)` minus `started_epoch`).
 
 **Ownership rule.** Delete the lockfile only when it still carries this beat's `beat_id`. Missing
-or different means a later beat cleaned and re-took it; leave it alone. A beat that never
-acquired the lock — the `lock_conflict` and config-missing exits, and `--dry-run` — deletes
-nothing.
+or different means a later beat cleaned and re-took it; leave it alone. A beat that never acquired the lock —
+the `lock_conflict` and config-missing exits, both of which precede step 3 — deletes nothing.
+`--dry-run` exits at step 3 *after* the lock was taken, so it does own its lock and must
+release it; it simply records no beat line.
 
 **Never hold a clock in a shell variable.** A skill is a procedure executed across separate tool
 calls, and shell state does not survive between them: `BEAT_START=$(date -u +%s)` assigns a value
@@ -95,8 +96,9 @@ primitive. This is a reporting threshold for `/woterclip-status`, not an enforce
 
 ## Exit Paths and Stop Reasons
 
-Every exit records a beat line before deleting the lockfile (the step 1 invariant). This table is
-that invariant's map — each exit in `skills/heartbeat/SKILL.md` and the reason it records.
+Every exit **that began a beat** records a beat line, then applies the ownership rule. This table
+is the map — each exit in `skills/heartbeat/SKILL.md`, what it records, and whether it holds the
+lock. Three exits began no beat and record nothing; two hold no lock.
 
 | Exit | Where | Stop reason | `issues_worked` | Owns lock? |
 |------|-------|-------------|-----------------|-----------|
@@ -162,5 +164,6 @@ ambiguous, even when several issues were worked.
   to synthesize a beat cost; they exclude the loop's own overhead.
 - **If a group holds more issue lines than its beat line's `issues_worked`,** the excess belongs
   to an earlier died beat. Split it off and render it as died.
-- Beats that exit with `queue_empty`, `quiet_hours`, or `lock_conflict` perform no issue work and
-  therefore write a beat line with `issues_worked: 0` and no issue lines.
+- Beats that exit with `queue_empty` or `quiet_hours` perform no issue work and therefore write a
+  beat line with `issues_worked: 0` and no issue lines. `lock_conflict` and `--dry-run` write no
+  beat line at all — no beat began, and no work was done.
