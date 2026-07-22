@@ -23,13 +23,18 @@ All `gh issue` / `gh api` calls below target the repo from config `github.repo` 
 
 ## Step 1: Load Config & Lock
 
-1. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
-2. Check for lockfile at `.woterclip/.heartbeat-lock`.
+1. Capture the beat start clock as the **first action**, before reading config:
+   ```bash
+   BEAT_START=$(date -u +%s)
+   ```
+   Elapsed seconds at any later point is `$(date -u +%s) - BEAT_START`. This is the only source of elapsed time — see `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+2. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
+3. Check for lockfile at `.woterclip/.heartbeat-lock`.
    - If lockfile exists and is **less than** `stale_lock_hours` old → stop with message: "Previous heartbeat still active. Skipping."
    - If lockfile exists and is **older than** `stale_lock_hours` → delete it, log: "Cleaned stale lockfile."
    - If no lockfile → proceed.
-3. Create lockfile with current ISO timestamp.
-4. **On any exit path** (success, error, or early return), delete the lockfile.
+4. Create lockfile with current ISO timestamp.
+5. **On any exit path** (success, error, or early return), delete the lockfile.
 
 Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet window:
 - `behavior: "skip"` → delete lockfile and exit with message: "Quiet hours active. Skipping."
@@ -167,7 +172,12 @@ For blocked issues: @-mention the Board user's GitHub login in the comment text 
 
 ## Step 11: Next Issue or Exit
 
-1. If issues worked this heartbeat < `max_issues_per_heartbeat`, return to **Step 2** to pick the next issue.
-2. Otherwise, delete lockfile and exit.
-3. If 0 todo issues remain in queue, suggest pausing the schedule.
-4. If 3+ issues are blocked, suggest Board attention rather than more heartbeats.
+Evaluate both bounds before taking another issue. Elapsed is `$(date -u +%s) - BEAT_START`; the ceiling and the stop-reason values are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+
+1. If elapsed ≥ the time ceiling and eligible issues remain → stop intake with stop reason `time_ceiling`. The issue just finished keeps its outcome and labels; only the next pick-up is declined. The ceiling is never evaluated mid-issue.
+2. Else if issues worked this heartbeat ≥ `max_issues_per_heartbeat` and eligible issues remain → stop intake with stop reason `issue_budget`.
+3. Else if eligible issues remain → return to **Step 2** to pick the next issue.
+4. Otherwise the queue is exhausted → stop reason `complete`.
+5. On any stop: record the beat line (step 9), delete the lockfile, and exit.
+6. If 0 todo issues remain in queue, suggest pausing the schedule.
+7. If 3+ issues are blocked, suggest Board attention rather than more heartbeats.
