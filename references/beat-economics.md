@@ -56,6 +56,29 @@ A closed set. Every beat records exactly one.
 When both `issue_budget` and `time_ceiling` are reached at the same decision point, record
 `time_ceiling` — it is the newer and tighter bound, and recording it makes ceiling tuning visible.
 
+## Scheduling Preconditions
+
+Recorded here because they decide which primitive the docs recommend.
+
+| Property | Cron schedule | Self-paced loop |
+|----------|---------------|-----------------|
+| Survives a closed session | Yes | No — in-session only |
+| Recovers from a beat that died mid-work | Yes — the next tick fires regardless | **Unverified** |
+| Cadence adapts to queue depth | No | Yes |
+| Maximum wake delay | The configured interval | Model-chosen, unbounded |
+
+**Cron is the recommended unattended default**, on the session-independence row alone: a
+self-paced loop cannot span a closed session, so it cannot run unattended for days no matter how
+it handles errors.
+
+**The error-recovery row is unverified.** Confirming it needs a live scaffolded repo running a
+self-paced loop with a beat forced to fail, which has not been performed. Until it is, do not
+recommend self-pacing for unattended operation — a self-paced loop schedules its own successor,
+so a beat that dies may take the loop with it, and nothing would report that it had stopped.
+
+**Treat a quiet repo as stopped after ~2 hours** of no beat with a non-empty queue, under either
+primitive. This is a reporting threshold for `/woterclip-status`, not an enforced timeout.
+
 ## Log Fields
 
 `.woterclip/heartbeat-log.jsonl` carries two line kinds, distinguished by `type`.

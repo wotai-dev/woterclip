@@ -97,8 +97,11 @@ All labels above are created unconditionally — the heartbeat and Orchestrator 
 
 Ask the user if they want to set up a recurring heartbeat:
 
-- **Yes** → Suggest: `/schedule 30m /heartbeat` and explain cadence options
-- **Not now** → Explain they can run `/heartbeat` manually or set up `/schedule` later
+- **Yes, unattended** → Suggest `/schedule 30m /heartbeat`. This is the default recommendation: it is cron-scheduled, so it survives a closed session and the next tick recovers from a beat that died mid-work.
+- **Yes, while I'm working** → Suggest `/loop /heartbeat` with no interval. The loop self-paces from what each beat finds, so a quiet queue waits longer — but it is in-session only, so it stops when the session closes.
+- **Not now** → Explain they can run `/heartbeat` manually or set up a schedule later
+
+Note that a repo showing no beat for ~2 hours with a non-empty queue has stopped rather than gone idle.
 
 ### Step 6: Print Summary
 
