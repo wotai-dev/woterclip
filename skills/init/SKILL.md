@@ -97,8 +97,11 @@ All labels above are created unconditionally — the heartbeat and Orchestrator 
 
 Ask the user if they want to set up a recurring heartbeat:
 
-- **Yes** → Suggest: `/schedule 30m /heartbeat` and explain cadence options
-- **Not now** → Explain they can run `/heartbeat` manually or set up `/schedule` later
+- **Yes, unattended** → Suggest `/schedule 30m /heartbeat`. This is the default recommendation because it survives a closed session.
+- **Yes, while I'm working** → Suggest `/loop /heartbeat` with no interval, which self-paces from what each beat finds but is in-session only.
+- **Not now** → Explain they can run `/heartbeat` manually or set up a schedule later
+
+The full trade-off, and the ~2h threshold for treating a quiet repo as stopped, are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md` § Scheduling Preconditions.
 
 ### Step 6: Print Summary
 

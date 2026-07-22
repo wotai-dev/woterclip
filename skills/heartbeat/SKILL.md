@@ -18,21 +18,29 @@ Execute the WoterClip heartbeat cycle: pick up assigned GitHub issues, resolve t
 - `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` — GitHub state model, sort order, inbox filtering
 - `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md` — Canonical create/attach/verify procedure for sub-issues
 - `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md` — Subagent dispatch, outcome contract, and fallback rules
+- `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md` — Clock capture, time ceiling, stop reasons, log fields
 
 All `gh issue` / `gh api` calls below target the repo from config `github.repo` (pass `--repo <owner/name>` explicitly — never rely on the working directory's default remote).
 
 ## Step 1: Load Config & Lock
 
-1. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`.
+1. Read `.woterclip/config.yaml`. If missing, stop and instruct the user to run `/woterclip-init`. Nothing is created yet, so this exit records nothing.
 2. Check for lockfile at `.woterclip/.heartbeat-lock`.
-   - If lockfile exists and is **less than** `stale_lock_hours` old → stop with message: "Previous heartbeat still active. Skipping."
-   - If lockfile exists and is **older than** `stale_lock_hours` → delete it, log: "Cleaned stale lockfile."
-   - If no lockfile → proceed.
-3. Create lockfile with current ISO timestamp.
-4. **On any exit path** (success, error, or early return), delete the lockfile.
+   - Exists and **less than** `stale_lock_hours` old → stop: "Previous heartbeat still active. Skipping." **This beat never took the lock — do not delete it and do not record a beat line.**
+   - Exists and **older than** `stale_lock_hours` → delete it, log: "Cleaned stale lockfile."
+   - No lockfile → proceed.
+3. Take the lock. This one command creates it **and prints it**, so the beat observes its own id and start epoch:
+   ```bash
+   printf '{"beat_id":"%s","started_at":"%s","started_epoch":%s}\n' \
+     "$(date -u +%s)-$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(date -u +%s)" \
+     | tee .woterclip/.heartbeat-lock
+   ```
+   Carry the printed `beat_id` and `started_epoch` forward — they are the beat's identity and its clock.
+4. **Ownership rule, applied at every exit from here on.** Re-read `.woterclip/.heartbeat-lock`. Delete it **only if it still carries this beat's `beat_id`**; if it is missing or carries another id, a later beat cleaned and re-took it — leave it alone. Deleting a lock this beat does not own hands two beats the same repo.
+5. **Every exit from here on** records one beat line (step 9 format) naming that exit's stop reason, then applies the ownership rule. `--dry-run` records none — no beat's work was done. The exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`. Beat elapsed is `$(date -u +%s)` minus `started_epoch`.
 
 Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet window:
-- `behavior: "skip"` → delete lockfile and exit with message: "Quiet hours active. Skipping."
+- `behavior: "skip"` → record a `quiet_hours` beat line, apply the ownership rule, exit: "Quiet hours active. Skipping."
 - `behavior: "triage-only"` → proceed but only load Orchestrator persona (skip worker personas in step 3).
 
 ## Step 2: Check Inbox
@@ -42,27 +50,21 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
    gh issue list --repo <owner/name> --assignee @me --state open \
      --json number,title,labels,createdAt --limit 100
    ```
-2. Filter client-side (labels come from the JSON above):
-   - **Skip** issues labeled `backlog` or `in-review`
-   - **Skip** issues without a persona label (unless Orchestrator is default and issue has no label)
-   - **Skip** `agent-blocked` issues unless new human comments exist since the last agent comment (check via `gh issue view N --json comments`)
-3. Sort:
-   - Primary: status label — `in-progress` before plain/`todo`
-   - Secondary: priority label — `priority:high` > no priority label > `priority:low`
-4. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (`gh issue edit N --remove-label agent-working`, post cleanup comment).
+2. Filter and sort client-side per `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` § Filter Rules and § Sort Order (labels come from the JSON above).
+3. Detect stale `agent-working` labels: if an issue has `agent-working` but no heartbeat comment within `stale_lock_hours`, clean the stale label (`gh issue edit N --remove-label agent-working`, post cleanup comment).
 
 ## Step 3: Pick Issue
 
 1. If `--persona <name>` flag is set, filter to only issues matching that persona's label.
 2. Pick the first issue from the sorted inbox.
-3. If `--dry-run`, report what would be picked and exit:
+3. If `--dry-run`, report what would be picked, then apply the ownership rule and exit. No beat occurred, so record **no** beat line:
    ```
    Dry run — would pick:
      #12 [backend] "Issue title" (in-progress, priority:high)
    Queue:
      #15 [frontend] "Other issue" (todo)
    ```
-4. If no issues match → delete lockfile and exit: "No issues in queue. Heartbeat complete."
+4. If no issues match → record a beat line (`queue_empty` when zero issues were worked this beat, otherwise `complete` with the running count), apply the ownership rule, exit: "No issues in queue. Heartbeat complete."
 
 ## Step 4: Resolve Persona
 
@@ -73,11 +75,7 @@ Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet
    - `TOOLS.md` → inject into context as tool guidance
    - `config.yaml` → read runtime settings
 
-Apply runtime config from persona's `config.yaml` — these feed the step 8 dispatch:
-- `model` — the model the persona subagent is dispatched on (dispatch parameter)
-- `thinking_effort` — passed as an effort directive in the dispatch prompt
-- `max_turns` — passed as a turn-budget directive in the dispatch prompt
-- `enable_chrome` — when true, noted in the dispatch prompt (browser-dependent work)
+The persona's `config.yaml` supplies `model`, `thinking_effort`, `max_turns`, and `enable_chrome`; how each feeds the step 8 dispatch is defined in `${CLAUDE_PLUGIN_ROOT}/references/persona-dispatch.md`.
 
 ## Step 5: Validate Tools
 
@@ -86,13 +84,13 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 - `mcp__*` entries (e.g., `mcp__neon`) → these are MCP tool prefixes, not executables: verify by checking whether any tool starting with that prefix is available in the current session. Never run `command -v` on an `mcp__*` name.
 - Other executables (e.g., `docker`) → verify with `command -v <tool>`
 
-**If `gh` itself is unavailable or unauthenticated:** no GitHub mutation is possible — do not attempt the blocked-comment path (it needs gh). Log the failure locally to `.woterclip/heartbeat-log.jsonl`, delete the lockfile, and exit with an error message telling the user to run `gh auth login`. (Same rule as the mid-work failure in step 8.)
+**If `gh` itself is unavailable or unauthenticated:** no GitHub mutation is possible — do not attempt the blocked-comment path (it needs gh). Record a `blocked_exit` beat line, apply the ownership rule, and exit with an error message telling the user to run `gh auth login`. (Same rule as the mid-work failure in step 8.)
 
 **If any other required tool is unavailable** → stop work on this issue immediately:
   - Post a blocked comment naming the missing tool
   - Apply `agent-blocked` label, remove `agent-working` if present:
     `gh issue edit N --add-label agent-blocked --remove-label agent-working`
-  - Proceed to step 11 (next issue)
+  - Proceed to step 11 (next issue). **This is not a beat exit** — record no beat line and do not touch the lockfile; the beat's stop reason still comes from step 11.
 
 ## Step 6: Lock Issue
 
@@ -102,10 +100,11 @@ Read `required_tools` from persona config. Verify each entry by its kind:
 
 ## Step 7: Understand Context
 
-1. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
-2. If the issue is a sub-issue, read its parent for broader context: follow the `Parent: #N` reference in the issue body (guaranteed by the sub-issue creation procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`), then `gh issue view <parent> --json title,body,comments`.
-3. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
-4. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
+1. Run `date -u +%s` and carry the printed value as this issue's start epoch — it covers the dispatch. Separate from the beat clock in the lockfile.
+2. Read issue title, body, and all comments: `gh issue view N --json title,body,comments`.
+3. If the issue is a sub-issue, read its parent for broader context: follow the `Parent: #N` reference in the issue body (guaranteed by the sub-issue creation procedure in `${CLAUDE_PLUGIN_ROOT}/references/sub-issues.md`), then `gh issue view <parent> --json title,body,comments`.
+4. Identify new comments since the last heartbeat (look for comments after the last WoterClip-formatted comment).
+5. Parse heartbeat counter: find the last comment matching `Heartbeat #N` pattern. Next comment will be `#N+1`. If none found, start at `#1`.
 
 ## Step 8: Do Work
 
@@ -128,11 +127,11 @@ The work itself — wherever it runs — follows the persona's SOUL.md instructi
 - Commit changes with descriptive conventional commit messages
 - Respect `max_turns` from persona config as a work budget
 
-**If `gh` auth expires or GitHub API errors persist mid-work:** Stop immediately. Leave `agent-working` label in place (will be cleaned as stale on next heartbeat). Delete lockfile and exit with error log.
+**If `gh` auth expires or GitHub API errors persist mid-work:** Stop immediately. Leave `agent-working` in place (cleaned as stale by a later beat). Record a `blocked_exit` beat line, apply the ownership rule, exit.
 
 ## Step 9: Report
 
-Before posting, confirm the lockfile still exists and the issue still carries `agent-working` — if a later heartbeat cleaned them as stale, log locally and exit without writing. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
+Before posting, re-read the lockfile and confirm it still carries this beat's `beat_id`, and that the issue still carries `agent-working`. If a later beat superseded this one, record a `blocked_exit` beat line and exit **without posting the comment and without deleting the lock** — it belongs to the successor. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
 
 Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner/name> --body "..."`.
 
@@ -142,24 +141,26 @@ Follow the comment format from `${CLAUDE_PLUGIN_ROOT}/references/comment-format.
 - Include the `**Model:**` line naming the model that performed the work — the loop's dispatch parameter (session model on fallback, naming both configured and actual); the subagent's self-reported model is advisory only
 - Include persona name in footer
 - List commits with SHAs, sub-issues created, and next steps
-- For blocked status: @-mention who needs to act (Board user's login from config `github.board_user`)
+- For blocked status: @-mention who needs to act (Board user's login from `github.board_user`) **and include the required `**Clears when:**` line** naming what will unblock the issue
 
-Append heartbeat metadata to `.woterclip/heartbeat-log.jsonl`:
+Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue worked. `duration_sec` is `date -u +%s` now, minus the start epoch printed at step 7 — seconds on this issue, not the beat's cost:
 ```json
 {"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
+```
+
+At **any** beat exit — step 3, 5, 8, 9, or 11 — append exactly one **beat line**. This is where beat cost lives. Field and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
+```json
+{"type": "beat", "started_at": "ISO", "ended_at": "ISO", "beat_elapsed_sec": N, "issues_worked": N, "stop_reason": "time_ceiling"}
 ```
 
 ## Step 10: Update State
 
 Read the issue's current labels (`gh issue view N --json labels`), then update based on outcome:
 
-| Outcome | Commands (in order) |
-|---------|--------|
-| **Completed** | `gh issue edit N --remove-label agent-working --remove-label in-progress` (labels first — `gh issue close` does not touch labels, and stale-label cleanup only scans open issues), then `gh issue close N --comment "..."` — or, if a PR was opened, swap to review instead: `gh issue edit N --remove-label agent-working --remove-label in-progress --add-label in-review` (issue stays open) |
-| **Blocked** | One combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked` (stays open) |
-| **More work needed** | Keep `agent-working`, ensure `in-progress`: `gh issue edit N --add-label in-progress` (stays open) |
-| **Triaged** (Orchestrator applied a persona label as work product) | `gh issue edit N --remove-label agent-working` (stays open, unclaimed — the routed persona picks it up on a later heartbeat) |
-| **Decomposed** (sub-issues created) | `gh issue edit N --remove-label agent-working --remove-label in-progress` (parent stays open, todo-tier below its children; sub-issues carry the work) |
+Transitions are defined in `${CLAUDE_PLUGIN_ROOT}/references/status-mapping.md` § WoterClip Outcomes. Two ordering rules the loop must honor:
+
+- **Completed** — remove `agent-working` and `in-progress` *before* `gh issue close` (close does not touch labels, and stale-label cleanup only scans open issues). If a PR opened instead, swap to `in-review` and leave the issue open.
+- **Blocked** — one combined edit: `gh issue edit N --remove-label agent-working --add-label agent-blocked`.
 
 If any `--add-label` fails because the label doesn't exist on the repo, create it and retry (see `${CLAUDE_PLUGIN_ROOT}/references/label-conventions.md` § Label Operations) — do not skip the transition.
 
@@ -167,7 +168,11 @@ For blocked issues: @-mention the Board user's GitHub login in the comment text 
 
 ## Step 11: Next Issue or Exit
 
-1. If issues worked this heartbeat < `max_issues_per_heartbeat`, return to **Step 2** to pick the next issue.
-2. Otherwise, delete lockfile and exit.
-3. If 0 todo issues remain in queue, suggest pausing the schedule.
-4. If 3+ issues are blocked, suggest Board attention rather than more heartbeats.
+"Eligible issues remain" means the sorted inbox from step 2 minus issues worked this beat — do not re-query to answer these tests. The ceiling (1200s default) and stop reasons are defined in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`.
+
+1. Elapsed ≥ ceiling with issues remaining → stop intake, reason `time_ceiling`.
+2. Else issues worked ≥ `max_issues_per_heartbeat` with issues remaining → stop intake, reason `issue_budget`.
+3. Else issues remain → return to **Step 2** for the next issue.
+4. Else the queue is exhausted → reason `complete`.
+
+Before exiting, add to the report: suggest pausing the schedule if 0 todo issues remain, and suggest Board attention rather than more heartbeats if 3+ issues are blocked. Then exit per the step 1 invariant.

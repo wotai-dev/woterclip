@@ -21,6 +21,9 @@ heartbeat:
     behavior: "skip"                 # "skip" = no heartbeat; "triage-only" = orchestrator triage only
 
   # Error cooldown – back off on repeated failures
+  # RESERVED: no skill reads these keys yet. Kept for a future failure-backoff
+  # feature; changing them has no effect today. Do not remove without a schema
+  # version bump (see CLAUDE.md editing guidelines).
   cooldown:
     max_consecutive_failures: 3      # Pause schedule after N failures
     backoff_multiplier: 2            # Double interval on consecutive failures

@@ -71,7 +71,10 @@ This repo has no build system, no tests, no dependencies. "Development" means ed
 **To test the plugin locally:** `claude --plugin-dir /Users/alexkim/Documents/Github-Mac-2026/woterclip`
 
 **Validation checklist:**
-- YAML files parse cleanly (`python3 -c "import yaml; yaml.safe_load(open('file.yaml'))"`)
+- YAML files parse cleanly. **PyYAML is not in the standard library**, so the `python3` form only
+  works where it has been installed — check with `python3 -c "import yaml"` before relying on it:
+  - Ruby (ships with macOS, no install): `ruby -ryaml -e 'YAML.load_file("file.yaml")'`
+  - Python, only if PyYAML is present: `python3 -c "import yaml; yaml.safe_load(open('file.yaml'))"`
 - SKILL.md files have valid frontmatter (`name` and `description` fields)
 - Command .md files have valid frontmatter (`description` field)
 - Agent .md files have valid frontmatter (`description` field)
