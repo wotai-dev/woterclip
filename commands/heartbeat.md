@@ -11,4 +11,4 @@ Parse the arguments:
 - If `--dry-run` is present, pass it through to the heartbeat procedure (step 3 reports what would be picked without doing work)
 - If `--persona <name>` is present, filter to only issues matching that persona's label
 
-Execute the full 11-step heartbeat procedure. On any error or exit, ensure the lockfile at `.woterclip/.heartbeat-lock` is deleted.
+Execute the full 11-step heartbeat procedure. On any error or exit, apply the ownership rule to the lockfile at `.woterclip/.heartbeat-lock`: delete it only if it still carries this beat's `beat_id`. If it is missing or carries another id, a later beat re-took it — leave it alone.

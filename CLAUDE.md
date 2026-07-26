@@ -48,7 +48,7 @@ Routing: GitHub issue label → `personas` map in config.yaml → persona direct
 
 - **Labels are the state machine.** `agent-working` and `agent-blocked` are mutually exclusive. Labels are changed via atomic operations (`gh issue edit --add-label / --remove-label`) — never rewrite the full label set.
 - **Heartbeat counter is derived from comments**, not stored locally. Parse last `Heartbeat #N` from the issue's GitHub comments.
-- **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. Must be deleted on every exit path.
+- **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. JSON carrying the beat's `beat_id` and start epoch. Deleted on exit **only when it still carries this beat's `beat_id`** — if it is missing or carries another id, a later beat re-took it and the lock is the successor's. Deleting a lock this beat does not own hands two beats the same repo.
 - **`${CLAUDE_PLUGIN_ROOT}`** — use this for all intra-plugin path references in commands and hooks. Never hardcode paths.
 - **Templates use `{{USER_NAME}}` and `{{REPO}}`** placeholders — the init skill replaces these when scaffolding (`{{USER_NAME}}` = Board user's GitHub login, `{{REPO}}` = `owner/name`).
 
@@ -71,7 +71,10 @@ This repo has no build system, no tests, no dependencies. "Development" means ed
 **To test the plugin locally:** `claude --plugin-dir /Users/alexkim/Documents/Github-Mac-2026/woterclip`
 
 **Validation checklist:**
-- YAML files parse cleanly (`python3 -c "import yaml; yaml.safe_load(open('file.yaml'))"`)
+- YAML files parse cleanly. **PyYAML is not in the standard library**, so the `python3` form only
+  works where it has been installed — check with `python3 -c "import yaml"` before relying on it:
+  - Ruby (ships with macOS, no install): `ruby -ryaml -e 'YAML.load_file("file.yaml")'`
+  - Python, only if PyYAML is present: `python3 -c "import yaml; yaml.safe_load(open('file.yaml'))"`
 - SKILL.md files have valid frontmatter (`name` and `description` fields)
 - Command .md files have valid frontmatter (`description` field)
 - Agent .md files have valid frontmatter (`description` field)

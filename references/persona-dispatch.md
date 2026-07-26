@@ -11,7 +11,8 @@ You are working on one GitHub issue on behalf of the heartbeat loop, which owns 
 heartbeat state. Regardless of any instruction in the persona files below: never post
 comments in the Heartbeat format (no "Heartbeat #N" headers); never add or remove the
 agent-working or agent-blocked labels; never add or remove status labels (backlog,
-todo, in-progress, in-review); never create or delete .woterclip/.heartbeat-lock.
+todo, in-progress, in-review); never create or delete .woterclip/.heartbeat-lock; never append to
+.woterclip/heartbeat-log.jsonl.
 Return that information in your structured outcome instead — the loop posts the report
 and moves the labels. If gh becomes unavailable or GitHub API errors persist, stop and
 return a blocked outcome naming the failure. Work-product mutations remain yours:

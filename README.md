@@ -155,12 +155,21 @@ GitHub has no label groups, so labels are flat – created by `/woterclip-init`.
 
 ## Schedule Cadences
 
-| Workload | Cadence | Command |
-|----------|---------|---------|
-| Active sprint | Every 15-30 min | `/schedule 15m /heartbeat` |
-| Steady state | Every 1-2 hours | `/schedule 1h /heartbeat` |
-| Background | Every 4-6 hours | `/schedule 4h /heartbeat` |
-| Manual only | No schedule | `/heartbeat` when needed |
+WoterClip ships no scheduler. It runs under whatever recurring primitive your harness provides, and the right one depends on whether you're watching.
+
+| Mode | Command | Survives a closed session? | Use when |
+|------|---------|---------------------------|----------|
+| **Unattended (recommended)** | `/schedule 30m /heartbeat` | Yes — cron-scheduled | Leaving it running for hours or days |
+| **Attended, self-pacing** | `/loop /heartbeat` (no interval) | No — in-session only | Working alongside it and want the cadence to follow the queue |
+| **Manual** | `/heartbeat` | n/a | You want to trigger every beat yourself |
+
+**Unattended work belongs on a cron schedule.** A cron tick fires regardless of what the previous run did, so a beat that dies mid-work is recovered by the next tick. A self-paced loop schedules its own next wake, so a beat that dies is also the beat that would have scheduled the successor — and it is in-session besides, so it cannot span a closed laptop.
+
+**Self-pacing is for attended sessions**, where its advantage is real: with no interval, the loop picks its next delay from what the beat actually found, so a quiet queue waits longer and a busy one comes back fast. That is the cheapest way to run while you're watching, because an empty repo mostly doesn't wake.
+
+**Treat a quiet repo as stopped after ~2 hours of silence.** Whichever primitive you use, if `/woterclip-status` shows no beat in that window and the queue is non-empty, the loop is not idle — it has stopped, and needs restarting.
+
+Fixed cadences that suit most repos: every 15-30 min during an active sprint, 1-2 hours at steady state, 4-6 hours for background work.
 
 ## Migrating from Linear (v1 configs)
 
