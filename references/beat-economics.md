@@ -56,7 +56,8 @@ loop owns and the subagent has not yet returned through its structured outcome.
 
 ## Stop Reasons
 
-A closed set. Every beat records exactly one.
+A closed set. Every beat **line** carries exactly one; the exits that write no beat line (see Exit
+Paths below) carry none.
 
 | Value | Meaning |
 |-------|---------|
@@ -64,9 +65,9 @@ A closed set. Every beat records exactly one.
 | `queue_empty` | No eligible issues at pick-up time; no work performed |
 | `issue_budget` | Reached `max_issues_per_heartbeat` with issues still eligible |
 | `time_ceiling` | Reached the time ceiling with issues still eligible |
-| `blocked_exit` | Stopped early — a required tool was unavailable, or `gh` failed mid-work |
+| `blocked_exit` | Stopped early — `gh` was unavailable at step 5, or failed mid-work. A missing non-`gh` tool blocks the issue, not the beat |
 | `quiet_hours` | Quiet hours active with `behavior: "skip"` |
-| `lock_conflict` | Another beat held a live lockfile |
+| `lock_conflict` | Another beat held a live lockfile. **Names the exit, never recorded** — that path writes no beat line |
 
 When both `issue_budget` and `time_ceiling` are reached at the same decision point, record
 `time_ceiling` — it is the newer and tighter bound, and recording it makes ceiling tuning visible.
@@ -96,9 +97,9 @@ primitive. This is a reporting threshold for `/woterclip-status`, not an enforce
 
 ## Exit Paths and Stop Reasons
 
-Every exit **that began a beat** records a beat line, then applies the ownership rule. This table
-is the map — each exit in `skills/heartbeat/SKILL.md`, what it records, and whether it holds the
-lock. Three exits began no beat and record nothing; two hold no lock.
+Every exit **that began a beat and still owns its lock** records a beat line, then applies the
+ownership rule. This table is the map — each exit in `skills/heartbeat/SKILL.md`, what it records,
+and whether it holds the lock. Four exits record nothing; two hold no lock.
 
 | Exit | Where | Stop reason | `issues_worked` | Owns lock? |
 |------|-------|-------------|-----------------|-----------|
@@ -110,7 +111,7 @@ lock. Three exits began no beat and record nothing; two hold no lock.
 | No eligible issues, some worked | Step 3 | `complete` | count | yes |
 | `gh` unavailable or unauthenticated | Step 5 | `blocked_exit` | count so far | yes |
 | `gh` fails mid-work | Step 8 | `blocked_exit` | count so far | yes |
-| Superseded by a later beat before reporting | Step 9 | `blocked_exit` | count so far | **no** |
+| Superseded by a later beat before reporting | Step 9 | *none — records nothing* | — | **no** |
 | Ceiling reached, work remaining | Step 11 | `time_ceiling` | count | yes |
 | Issue budget reached, work remaining | Step 11 | `issue_budget` | count | yes |
 | Queue exhausted | Step 11 | `complete` | count | yes |
@@ -119,9 +120,10 @@ lock. Three exits began no beat and record nothing; two hold no lock.
 step 11; the beat's stop reason comes from step 11 as usual. Only `gh` itself being unavailable
 ends the beat, because no GitHub mutation is possible without it.
 
-**Three exits record nothing:** config-missing and `lock_conflict` (no beat began), and
-`--dry-run` (no work was done). Two exits own no lock: `lock_conflict` never took one, and the
-step 9 stand-down had its lock re-taken by a successor.
+**Four exits record nothing:** config-missing and `lock_conflict` (no beat began), `--dry-run` (no
+work was done), and the step 9 stand-down (the beat no longer owns the log — a beat line appended
+there would close the successor's in-flight group). Two exits own no lock: `lock_conflict` never
+took one, and the step 9 stand-down had its lock re-taken by a successor.
 
 `queue_empty` is the most common beat in a quiet repo and the cheapest to record. It is also the
 only evidence that a scheduled loop is alive and finding nothing, rather than stopped.
@@ -166,4 +168,6 @@ ambiguous, even when several issues were worked.
   to an earlier died beat. Split it off and render it as died.
 - Beats that exit with `queue_empty` or `quiet_hours` perform no issue work and therefore write a
   beat line with `issues_worked: 0` and no issue lines. `lock_conflict` and `--dry-run` write no
-  beat line at all — no beat began, and no work was done.
+  beat line at all — no beat began, and no work was done. A beat superseded at step 9 also writes
+  none; its issue lines stay a trailing run and are rendered as a died beat by the rule above,
+  which is the correct reading — a superseded beat never reached its own exit.

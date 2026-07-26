@@ -48,7 +48,7 @@ Routing: GitHub issue label → `personas` map in config.yaml → persona direct
 
 - **Labels are the state machine.** `agent-working` and `agent-blocked` are mutually exclusive. Labels are changed via atomic operations (`gh issue edit --add-label / --remove-label`) — never rewrite the full label set.
 - **Heartbeat counter is derived from comments**, not stored locally. Parse last `Heartbeat #N` from the issue's GitHub comments.
-- **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. Must be deleted on every exit path.
+- **Lockfile** (`.woterclip/.heartbeat-lock`) prevents concurrent heartbeats. JSON carrying the beat's `beat_id` and start epoch. Deleted on exit **only when it still carries this beat's `beat_id`** — if it is missing or carries another id, a later beat re-took it and the lock is the successor's. Deleting a lock this beat does not own hands two beats the same repo.
 - **`${CLAUDE_PLUGIN_ROOT}`** — use this for all intra-plugin path references in commands and hooks. Never hardcode paths.
 - **Templates use `{{USER_NAME}}` and `{{REPO}}`** placeholders — the init skill replaces these when scaffolding (`{{USER_NAME}}` = Board user's GitHub login, `{{REPO}}` = `owner/name`).
 

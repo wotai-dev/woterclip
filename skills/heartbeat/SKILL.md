@@ -37,7 +37,7 @@ All `gh issue` / `gh api` calls below target the repo from config `github.repo` 
    ```
    Carry the printed `beat_id` and `started_epoch` forward — they are the beat's identity and its clock.
 4. **Ownership rule, applied at every exit from here on.** Re-read `.woterclip/.heartbeat-lock`. Delete it **only if it still carries this beat's `beat_id`**; if it is missing or carries another id, a later beat cleaned and re-took it — leave it alone. Deleting a lock this beat does not own hands two beats the same repo.
-5. **Every exit from here on** records one beat line (step 9 format) naming that exit's stop reason, then applies the ownership rule. `--dry-run` records none — no beat's work was done. The exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`. Beat elapsed is `$(date -u +%s)` minus `started_epoch`.
+5. **Every exit from here on** records one beat line (step 9 format) naming that exit's stop reason, then applies the ownership rule. `--dry-run` and a superseded beat record none. The exit-to-reason map is in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`. Beat elapsed is `$(date -u +%s)` minus `started_epoch`.
 
 Check quiet hours: if `quiet_hours.enabled` and current time is within the quiet window:
 - `behavior: "skip"` → record a `quiet_hours` beat line, apply the ownership rule, exit: "Quiet hours active. Skipping."
@@ -131,7 +131,7 @@ The work itself — wherever it runs — follows the persona's SOUL.md instructi
 
 ## Step 9: Report
 
-Before posting, re-read the lockfile and confirm it still carries this beat's `beat_id`, and that the issue still carries `agent-working`. If a later beat superseded this one, record a `blocked_exit` beat line and exit **without posting the comment and without deleting the lock** — it belongs to the successor. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
+Before posting, re-read the lockfile and confirm it still carries this beat's `beat_id`, and that the issue still carries `agent-working`. If a later beat superseded this one, exit **silently** — no comment, no beat line, no lock deletion; all three are the successor's. A beat line here would close its in-flight group. If the report post itself fails with persistent gh errors, follow the step 8 mid-work rule.
 
 Post a structured comment on the GitHub issue: `gh issue comment N --repo <owner/name> --body "..."`.
 
@@ -148,7 +148,7 @@ Append an **issue line** to `.woterclip/heartbeat-log.jsonl` — one per issue w
 {"heartbeat": N, "timestamp": "ISO", "issue": "#12", "persona": "name", "duration_sec": N, "status": "in_progress|completed|blocked|triaged|decomposed", "actions": ["description"]}
 ```
 
-At **any** beat exit — step 3, 5, 8, 9, or 11 — append exactly one **beat line**. This is where beat cost lives. Field and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
+At each beat exit that still owns its lock — step 3, 5, 8, 9, or 11 — append exactly one **beat line**. Field, exception, and stop-reason definitions are in `${CLAUDE_PLUGIN_ROOT}/references/beat-economics.md`:
 ```json
 {"type": "beat", "started_at": "ISO", "ended_at": "ISO", "beat_elapsed_sec": N, "issues_worked": N, "stop_reason": "time_ceiling"}
 ```
